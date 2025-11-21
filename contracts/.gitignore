@@ -1,0 +1,51 @@
+# Hardhat files
+cache
+artifacts
+typechain
+typechain-types
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Node modules
+node_modules
+
+# IDE
+.vscode
+.idea
+
+# Coverage
+coverage
+coverage.json
+
+# Test
+test-results
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Deployment files
+deployments/localhost
+deployments/hardhat
+
+# Temporary files
+*.swp
+*.swo
+*~
+.tmp
+
+# Build
+dist
+build
+
+# Gas reporter
+gasReporterOutput.json

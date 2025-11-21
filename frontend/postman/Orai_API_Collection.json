@@ -1,0 +1,288 @@
+{
+  "info": {
+    "name": "Orai API Collection",
+    "description": "API collection for Orai - Decentralized AI Oracle on 0G Network. Simple backend with no authentication (Web3 handles identity).",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "wsUrl",
+      "value": "ws://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "questionId",
+      "value": "0x123456789abcdef",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Questions",
+      "item": [
+        {
+          "name": "Get All Questions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions?limit=20&offset=0&status=all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of questions to return"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Pagination offset"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Filter by status: all, pending, answered, voting, verified"
+                }
+              ]
+            },
+            "description": "Fetches a list of questions from cached blockchain data. No authentication required."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"questions\": [\n    {\n      \"id\": \"0x123456789abcdef\",\n      \"questionText\": \"What is the current price of Bitcoin?\",\n      \"submitter\": \"0xabc123def456...\",\n      \"timestamp\": 1700000000,\n      \"status\": \"answered\",\n      \"fee\": \"10\",\n      \"isPriority\": false,\n      \"referenceUrls\": []\n    },\n    {\n      \"id\": \"0x987654321fedcba\",\n      \"questionText\": \"Explain quantum computing in simple terms\",\n      \"submitter\": \"0xdef789abc123...\",\n      \"timestamp\": 1700000100,\n      \"status\": \"voting\",\n      \"fee\": \"15\",\n      \"isPriority\": true,\n      \"referenceUrls\": [\"https://example.com/quantum\"]\n    }\n  ],\n  \"total\": 42,\n  \"limit\": 20,\n  \"offset\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Question by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/{{questionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "{{questionId}}"]
+            },
+            "description": "Fetches detailed information about a specific question including its answer if available."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": \"0x123456789abcdef\",\n  \"questionText\": \"What is the current price of Bitcoin?\",\n  \"submitter\": \"0xabc123def456...\",\n  \"timestamp\": 1700000000,\n  \"status\": \"answered\",\n  \"fee\": \"10\",\n  \"isPriority\": false,\n  \"referenceUrls\": [],\n  \"answer\": {\n    \"text\": \"Based on current market data, Bitcoin is trading at approximately $45,000 USD.\",\n    \"confidence\": 0.95,\n    \"timestamp\": 1700000030,\n    \"evidence\": \"Data sourced from major exchanges including Coinbase, Binance, and Kraken.\",\n    \"modelHash\": \"0xabcdef123456...\",\n    \"inputHash\": \"0x123456abcdef...\",\n    \"outputHash\": \"0xfedcba654321...\"\n  },\n  \"voting\": {\n    \"startTime\": 1700000030,\n    \"endTime\": 1700086430,\n    \"totalVotes\": 150,\n    \"votesFor\": 120,\n    \"votesAgainst\": 20,\n    \"votesAbstain\": 10\n  }\n}"
+            },
+            {
+              "name": "Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"error\": \"Question not found\",\n  \"code\": \"NOT_FOUND\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Answers",
+      "item": [
+        {
+          "name": "Get Answer for Question",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/answers/{{questionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "answers", "{{questionId}}"]
+            },
+            "description": "Fetches the answer for a specific question if available."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"questionId\": \"0x123456789abcdef\",\n  \"answer\": {\n    \"text\": \"Based on current market data, Bitcoin is trading at approximately $45,000 USD.\",\n    \"confidence\": 0.95,\n    \"timestamp\": 1700000030,\n    \"evidence\": \"Data sourced from major exchanges including Coinbase, Binance, and Kraken.\",\n    \"modelHash\": \"0xabcdef123456...\",\n    \"inputHash\": \"0x123456abcdef...\",\n    \"outputHash\": \"0xfedcba654321...\",\n    \"nodeSignatures\": [\n      \"0xsignature1...\",\n      \"0xsignature2...\",\n      \"0xsignature3...\"\n    ]\n  },\n  \"verification\": {\n    \"status\": \"verified\",\n    \"verifiedAt\": 1700086430,\n    \"votingResult\": \"accepted\"\n  }\n}"
+            },
+            {
+              "name": "Answer Not Ready",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"error\": \"Answer not yet available for this question\",\n  \"code\": \"ANSWER_PENDING\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Statistics",
+      "item": [
+        {
+          "name": "Get Platform Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stats"]
+            },
+            "description": "Returns cached platform statistics, updated hourly."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"totalQuestions\": 1234,\n  \"totalAnswered\": 1000,\n  \"pendingQuestions\": 34,\n  \"activeVoting\": 200,\n  \"totalVotes\": 5000,\n  \"activeVoters\": 234,\n  \"averageResponseTime\": 45,\n  \"successRate\": 0.95,\n  \"last24Hours\": {\n    \"questions\": 45,\n    \"answers\": 42,\n    \"votes\": 320\n  },\n  \"topCategories\": [\n    {\n      \"category\": \"DeFi\",\n      \"count\": 456\n    },\n    {\n      \"category\": \"Market Data\",\n      \"count\": 234\n    },\n    {\n      \"category\": \"Technical\",\n      \"count\": 189\n    }\n  ],\n  \"lastUpdated\": 1700000000\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Simple health check endpoint for monitoring."
+          },
+          "response": [
+            {
+              "name": "Healthy",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": 1700000000,\n  \"version\": \"1.0.0\",\n  \"services\": {\n    \"database\": \"connected\",\n    \"blockchain\": \"synced\",\n    \"cache\": \"active\",\n    \"websocket\": \"running\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Events (Internal)",
+      "item": [
+        {
+          "name": "Blockchain Event Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Internal-Key",
+                "value": "internal-secret-key",
+                "description": "Simple internal authentication"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"QuestionSubmitted\",\n  \"data\": {\n    \"questionId\": \"0x123456789abcdef\",\n    \"questionText\": \"What is the current price of Bitcoin?\",\n    \"submitter\": \"0xabc123def456...\",\n    \"fee\": \"10\",\n    \"isPriority\": false,\n    \"referenceUrls\": [],\n    \"blockNumber\": 123456,\n    \"transactionHash\": \"0xtxhash...\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            },
+            "description": "Internal webhook endpoint for blockchain event listener service. Not exposed to external users."
+          },
+          "response": [
+            {
+              "name": "Event Processed",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Event processed successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "WebSocket Events",
+      "item": [
+        {
+          "name": "WebSocket Connection Example",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{wsUrl}}/",
+              "host": ["{{wsUrl}}"],
+              "path": [""]
+            },
+            "description": "WebSocket connection for real-time updates. No authentication required.\n\nExample client code:\n```javascript\nconst ws = new WebSocket('ws://localhost:3001');\n\nws.on('connect', () => {\n  console.log('Connected to WebSocket');\n});\n\nws.on('answer-ready', (data) => {\n  console.log('New answer:', data);\n});\n\nws.on('voting-started', (data) => {\n  console.log('Voting started:', data);\n});\n\nws.on('voting-complete', (data) => {\n  console.log('Voting complete:', data);\n});\n```\n\nEvent Types:\n- `answer-ready`: New answer available for a question\n- `voting-started`: Voting period has begun\n- `voting-complete`: Voting has ended with results\n- `question-submitted`: New question submitted (optional)\n- `stats-updated`: Platform statistics updated"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request Script",
+          "// No authentication needed - Web3 handles identity",
+          "",
+          "// Set timestamp for testing",
+          "pm.variables.set('timestamp', Math.floor(Date.now() / 1000));",
+          "",
+          "// Generate random question ID for testing",
+          "if (!pm.variables.get('questionId')) {",
+          "    const randomId = '0x' + Math.random().toString(16).substr(2, 16);",
+          "    pm.variables.set('questionId', randomId);",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global Tests",
+          "",
+          "// Check response time",
+          "pm.test('Response time is less than 500ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(500);",
+          "});",
+          "",
+          "// Check content type",
+          "pm.test('Content-Type is application/json', function () {",
+          "    pm.response.to.have.header('Content-Type', 'application/json');",
+          "});",
+          "",
+          "// Check for errors",
+          "if (pm.response.code >= 400) {",
+          "    pm.test('Error response has error field', function () {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('error');",
+          "        pm.expect(jsonData).to.have.property('code');",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ]
+}

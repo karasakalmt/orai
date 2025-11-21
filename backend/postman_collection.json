@@ -1,0 +1,270 @@
+{
+  "info": {
+    "name": "Orai Oracle API",
+    "description": "Decentralized AI-verified oracle on 0G infrastructure",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Check if the server is running and healthy"
+          }
+        },
+        {
+          "name": "API Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api",
+              "host": ["{{baseUrl}}"],
+              "path": ["api"]
+            },
+            "description": "Get general API information and available endpoints"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Questions",
+      "item": [
+        {
+          "name": "Submit Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionText\": \"What is the current price of ETH?\",\n  \"referenceUrls\": [\"https://coinmarketcap.com\"],\n  \"submitter\": \"0x1234567890123456789012345678901234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"]
+            },
+            "description": "Submit a new question to the oracle (max 500 chars, max 5 URLs)"
+          }
+        },
+        {
+          "name": "Get Question by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "question-id-here",
+                  "description": "The question ID"
+                }
+              ]
+            },
+            "description": "Get details of a specific question by ID"
+          }
+        },
+        {
+          "name": "List Questions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions?limit=20&offset=0&status=pending&sortBy=timestamp&order=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of questions to return (max 100)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Number of questions to skip"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "Filter by status: pending, computing, answer_available, voting_open, verified, rejected"
+                },
+                {
+                  "key": "submitter",
+                  "value": "",
+                  "description": "Filter by submitter address",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "timestamp",
+                  "description": "Sort by: timestamp or votes"
+                },
+                {
+                  "key": "order",
+                  "value": "desc",
+                  "description": "Sort order: asc or desc"
+                }
+              ]
+            },
+            "description": "List questions with pagination and filters"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Answers",
+      "item": [
+        {
+          "name": "Get Answer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/answers/:questionId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "answers", ":questionId"],
+              "variable": [
+                {
+                  "key": "questionId",
+                  "value": "question-id-here",
+                  "description": "The question ID to get answer for"
+                }
+              ]
+            },
+            "description": "Get the AI-generated answer for a specific question"
+          }
+        },
+        {
+          "name": "Submit Answer (Internal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "description": "Backend secret token"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"question-id-here\",\n  \"answerText\": \"The current price of ETH is $3,200\",\n  \"evidenceSummary\": \"Based on CoinMarketCap data...\",\n  \"storageHash\": \"0xabc123...\",\n  \"modelHash\": \"0xdef456...\",\n  \"inputHash\": \"0xghi789...\",\n  \"outputHash\": \"0xjkl012...\",\n  \"computeNodeId\": \"node-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/answers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "answers"]
+            },
+            "description": "Backend-only endpoint to submit answers from 0G compute"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Voting",
+      "item": [
+        {
+          "name": "Cast Vote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"question-id-here\",\n  \"voter\": \"0x1234567890123456789012345678901234567890\",\n  \"choice\": \"correct\",\n  \"votingPower\": 100,\n  \"signature\": \"0xsignature...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/votes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "votes"]
+            },
+            "description": "Cast a vote on an answer (correct/incorrect/abstain) with EIP-712 signature"
+          }
+        },
+        {
+          "name": "Get Voting Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/votes/:questionId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "votes", ":questionId"],
+              "variable": [
+                {
+                  "key": "questionId",
+                  "value": "question-id-here",
+                  "description": "The question ID to get voting info for"
+                }
+              ]
+            },
+            "description": "Get voting statistics and status for a question"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/:address",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", ":address"],
+              "variable": [
+                {
+                  "key": "address",
+                  "value": "0x1234567890123456789012345678901234567890",
+                  "description": "The user's wallet address"
+                }
+              ]
+            },
+            "description": "Get user profile including statistics, reputation, and history"
+          }
+        }
+      ]
+    }
+  ]
+}

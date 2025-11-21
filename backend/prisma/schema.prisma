@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  questionId    String   @unique
+  questionText  String
+  referenceUrls String[]
+  submitter     String
+  status        String   @default("pending")
+  feePaid       String
+  timestamp     DateTime @default(now())
+
+  answer        Answer?
+  votes         Vote[]
+
+  @@index([submitter])
+  @@index([status])
+}
+
+model Answer {
+  id              String   @id @default(uuid())
+  questionId      String   @unique
+  answerText      String
+  evidenceSummary String
+  storageHash     String
+  modelHash       String
+  inputHash       String
+  outputHash      String
+  verified        Boolean  @default(false)
+  timestamp       DateTime @default(now())
+
+  question        Question @relation(fields: [questionId], references: [questionId])
+  votingStats     VotingStats?
+}
+
+model VotingStats {
+  id               String   @id @default(uuid())
+  questionId       String   @unique
+  votesCorrect     Int      @default(0)
+  votesIncorrect   Int      @default(0)
+  totalVotingPower String   @default("0")
+  votingEndTime    DateTime
+  finalized        Boolean  @default(false)
+
+  answer           Answer   @relation(fields: [questionId], references: [questionId])
+}
+
+model Vote {
+  id           String   @id @default(uuid())
+  questionId   String
+  voter        String
+  choice       String
+  votingPower  String
+  timestamp    DateTime @default(now())
+
+  question     Question @relation(fields: [questionId], references: [questionId])
+
+  @@unique([questionId, voter])
+}
+
+model User {
+  address         String   @id
+  totalQuestions  Int      @default(0)
+  totalVotes      Int      @default(0)
+  reputationScore Int      @default(0)
+  stakedTokens    String   @default("0")
+  rewardsEarned   String   @default("0")
+  createdAt       DateTime @default(now())
+}
