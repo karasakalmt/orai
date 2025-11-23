@@ -1,0 +1,198 @@
+{
+  "info": {
+    "name": "Orai Oracle API",
+    "description": "API endpoints for the Orai decentralized AI oracle",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Questions",
+      "item": [
+        {
+          "name": "Get All Questions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions?status=&sortBy=recent&search=&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"],
+              "query": [
+                { "key": "status", "value": "" },
+                { "key": "sortBy", "value": "recent" },
+                { "key": "search", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Question by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "1"]
+            }
+          }
+        },
+        {
+          "name": "Submit Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is the current gas price on Ethereum?\",\n  \"referenceUrls\": [\"https://etherscan.io\"],\n  \"isPriority\": false,\n  \"walletAddress\": \"0x1234...5678\",\n  \"signature\": \"0xsignature...\",\n  \"fee\": 12\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"]
+            }
+          }
+        },
+        {
+          "name": "Get User Questions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/user/0x1234...5678",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "user", "0x1234...5678"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Validations",
+      "item": [
+        {
+          "name": "Get Validation Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/validations?status=active&validator=&unvoted=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "validations"],
+              "query": [
+                { "key": "status", "value": "active" },
+                { "key": "validator", "value": "" },
+                { "key": "unvoted", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Validation Vote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote\": \"yes\",\n  \"walletAddress\": \"0x1234...5678\",\n  \"signature\": \"0xsignature...\",\n  \"reason\": \"Answer is accurate and well-sourced\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/validations/1/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "validations", "1", "vote"]
+            }
+          }
+        },
+        {
+          "name": "Get Validator Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/validations/validators/0x1234...5678",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "validations", "validators", "0x1234...5678"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Oracle",
+      "item": [
+        {
+          "name": "Get Oracle Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/oracle/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "oracle", "status"]
+            }
+          }
+        },
+        {
+          "name": "Get Oracle Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/oracle/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "oracle", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Fee Structure",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/oracle/fees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "oracle", "fees"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    }
+  ]
+}

@@ -1,42 +1,114 @@
-import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
+import { ConnectButton } from './components/wallet/ConnectButton';
+import { NetworkSwitcher } from './components/wallet/NetworkSwitcher';
+import { useWeb3 } from './hooks/useWeb3';
 
-function App() {
-  const [count, setCount] = useState(0);
+// Import pages
+import { Home } from './pages/Home';
+import { Ask } from './pages/Ask';
+import { Browse } from './pages/Browse';
+import { Validate } from './pages/Validate';
+
+function Layout({ children }: { children: React.ReactNode }) {
+  const { isConnected } = useWeb3();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Orai - Decentralized AI Oracle
-          </h1>
-        </div>
-      </header>
+      <header className="bg-white shadow-lg sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo and Navigation */}
+            <div className="flex items-center gap-8">
+              <Link to="/" className="flex items-center gap-2">
+                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Orai Oracle
+                </span>
+              </Link>
 
-      <main className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Welcome to Orai</h2>
-          <p className="text-gray-600 mb-6">
-            Get verified AI-powered answers on the blockchain.
-          </p>
+              {/* Main Navigation */}
+              <nav className="hidden md:flex items-center gap-6">
+                <NavLink
+                  to="/"
+                  className={({ isActive }) =>
+                    `font-medium transition-colors ${
+                      isActive ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'
+                    }`
+                  }
+                >
+                  Home
+                </NavLink>
+                <NavLink
+                  to="/ask"
+                  className={({ isActive }) =>
+                    `font-medium transition-colors ${
+                      isActive ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'
+                    }`
+                  }
+                >
+                  Ask
+                </NavLink>
+                <NavLink
+                  to="/browse"
+                  className={({ isActive }) =>
+                    `font-medium transition-colors ${
+                      isActive ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'
+                    }`
+                  }
+                >
+                  Browse
+                </NavLink>
+                <NavLink
+                  to="/validate"
+                  className={({ isActive }) =>
+                    `font-medium transition-colors ${
+                      isActive ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'
+                    }`
+                  }
+                >
+                  Validate
+                </NavLink>
+              </nav>
+            </div>
 
-          <div className="space-y-4">
-            <button
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              onClick={() => setCount(count + 1)}
-            >
-              Counter: {count}
-            </button>
-
-            <div className="p-4 bg-gray-100 rounded">
-              <p className="text-sm text-gray-600">
-                This is a placeholder. Web3 integration and components coming soon!
-              </p>
+            {/* Wallet Controls */}
+            <div className="flex items-center gap-4">
+              <ConnectButton />
             </div>
           </div>
         </div>
-      </main>
+      </header>
+
+      {/* Page Content */}
+      <main>{children}</main>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white mt-20">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">Orai Oracle</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Decentralized AI-verified knowledge oracle on 0G Network
+            </p>
+            <div className="text-sm text-gray-400">
+              © 2024 Orai Oracle. Built on 0G Network.
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout><Home /></Layout>} />
+        <Route path="/ask" element={<Layout><Ask /></Layout>} />
+        <Route path="/browse" element={<Layout><Browse /></Layout>} />
+        <Route path="/validate" element={<Layout><Validate /></Layout>} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

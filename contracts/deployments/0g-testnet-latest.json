@@ -1,0 +1,24 @@
+{
+  "network": "0g-testnet",
+  "chainId": 16602,
+  "deployedAt": "2025-11-22T20:48:43.734Z",
+  "deployer": "0x059181b3C4a7bf7026C6310742877252e285E2da",
+  "contracts": {
+    "OraiToken": "0xDE465372A030570e649e76F9adB6b9bB2EE2f7c0",
+    "VotingContract": "0x604239Dcb79142D6733c0d9FF03c57f10208D256",
+    "OracleContract": "0x15ED253e953CCf67BB55E328c2FE4bB2183e3b09",
+    "GovernanceContract": "0x9811232BE9C101ee7cb90b12439b6ac29Bd16139"
+  },
+  "explorer": {
+    "OraiToken": "https://scan-testnet.0g.ai/address/0xDE465372A030570e649e76F9adB6b9bB2EE2f7c0",
+    "VotingContract": "https://scan-testnet.0g.ai/address/0x604239Dcb79142D6733c0d9FF03c57f10208D256",
+    "OracleContract": "https://scan-testnet.0g.ai/address/0x15ED253e953CCf67BB55E328c2FE4bB2183e3b09",
+    "GovernanceContract": "https://scan-testnet.0g.ai/address/0x9811232BE9C101ee7cb90b12439b6ac29Bd16139"
+  },
+  "configuration": {
+    "minOracleFee": "0.01",
+    "rewardPercentage": "5",
+    "treasuryPercentage": "10",
+    "relayerPercentage": "85"
+  }
+}

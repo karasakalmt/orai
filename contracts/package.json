@@ -3,20 +3,37 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "hardhat compile",
+    "test": "node scripts/run-tests.js",
+    "deploy": "hardhat run scripts/deploy.js --network 0g-testnet",
+    "deploy:local": "hardhat run scripts/deploy.js --network hardhat",
+    "verify": "hardhat run scripts/verify.js --network 0g-testnet",
+    "setup:relayer": "hardhat run scripts/setup-relayer.js --network 0g-testnet",
+    "test:oracle": "hardhat run scripts/test-oracle.js --network 0g-testnet",
+    "test:oracle:local": "hardhat run scripts/test-oracle.js --network hardhat",
+    "node": "hardhat node",
+    "console": "hardhat console"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
-    "@openzeppelin/hardhat-upgrades": "^3.9.1",
-    "hardhat": "^2.27.0"
+    "@nomicfoundation/hardhat-ethers": "^4.0.3",
+    "@nomicfoundation/hardhat-mocha": "^3.0.7",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
+    "@nomicfoundation/hardhat-verify": "^3.0.7",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "chai": "^6.2.1",
+    "ethers": "^6.15.0",
+    "hardhat": "^3.0.15",
+    "mocha": "^11.7.5"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.4.0",
     "@openzeppelin/contracts-upgradeable": "^5.4.0",
     "dotenv": "^17.2.3"
-  }
+  },
+  "type": "module"
 }

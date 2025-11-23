@@ -6,14 +6,6 @@
 **End Date:** November 28, 2024
 
 ### In Progress
-- [ ] Set up RainbowKit with 0G testnet
-  - Points: 5
-  - Priority: Critical
-  - Blockers: Need 0G chain configuration
-
-- [ ] Implement wallet connection button
-  - Points: 3
-  - Priority: High
 
 ### To Do
 - [ ] Create UI components library
@@ -52,11 +44,25 @@
   - Points: 3
   - Completed: Nov 21, 2024
 
+- [x] Set up RainbowKit with 0G testnet ✅
+  - Points: 5
+  - Completed: Nov 21, 2024
+  - Configured custom 0G chain
+  - Integrated Wagmi and React Query
+
+- [x] Implement wallet connection button ✅
+  - Points: 3
+  - Completed: Nov 21, 2024
+  - Created ConnectButton component
+  - Added wallet info display
+  - Implemented useWeb3 hook
+
 ### Sprint Metrics
 - **Total Points:** 22 (19 original + 3 for Postman)
-- **Completed:** 14 points
-- **Remaining:** 8 points
-- **Velocity:** 14 points (63% completion)
+- **Completed:** 22 points ✅
+- **Remaining:** 0 points (Sprint Goal Achieved!)
+- **Velocity:** 22 points (100% completion)
+- **Additional Work Planned:** UI Component Library (5 points)
 
 ---
 

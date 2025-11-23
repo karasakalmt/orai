@@ -1,0 +1,373 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/governance/Governor.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import "@openzeppelin/contracts/governance/TimelockController.sol";
+
+/**
+ * @title GovernanceContract
+ * @dev Protocol governance for the Orai oracle system
+ * Allows token holders to create proposals and vote on parameter changes
+ */
+contract GovernanceContract is
+    Governor,
+    GovernorSettings,
+    GovernorCountingSimple,
+    GovernorVotes,
+    GovernorVotesQuorumFraction,
+    GovernorTimelockControl
+{
+    // Proposal types
+    enum ProposalType {
+        PARAMETER_UPDATE,
+        CONTRACT_UPGRADE,
+        TREASURY_ALLOCATION,
+        EMERGENCY_ACTION
+    }
+
+    // Governance parameters (can be updated via proposals)
+    uint256 public minOracleFeeProposal;
+    uint256 public maxQuestionLengthProposal;
+    uint256 public votingPeriodProposal;
+    uint256 public rewardPercentageProposal;
+    uint256 public slashPercentageProposal;
+
+    // Contract references
+    address public oracleContract;
+    address public votingContract;
+    address public tokenContract;
+
+    // Proposal tracking
+    mapping(uint256 => ProposalType) public proposalTypes;
+    mapping(uint256 => string) public proposalDescriptions;
+
+    // Events
+    event ProposalCreated(
+        uint256 indexed proposalId,
+        ProposalType proposalType,
+        string description,
+        address proposer
+    );
+
+    event ParameterUpdated(string parameter, uint256 oldValue, uint256 newValue);
+    event ContractUpdated(string contractName, address oldAddress, address newAddress);
+
+    /**
+     * @dev Constructor
+     * @param _token The token used for voting (OraiToken)
+     * @param _timelock The timelock controller for delayed execution
+     * @param _votingDelay Delay before voting starts (in blocks)
+     * @param _votingPeriod Duration of voting period (in blocks)
+     * @param _proposalThreshold Minimum tokens needed to create proposal
+     * @param _quorumPercentage Percentage of tokens needed for quorum (4 = 4%)
+     */
+    constructor(
+        IVotes _token,
+        TimelockController _timelock,
+        uint48 _votingDelay,
+        uint32 _votingPeriod,
+        uint256 _proposalThreshold,
+        uint256 _quorumPercentage
+    )
+        Governor("Orai Governance")
+        GovernorSettings(_votingDelay, _votingPeriod, _proposalThreshold)
+        GovernorVotes(_token)
+        GovernorVotesQuorumFraction(_quorumPercentage)
+        GovernorTimelockControl(_timelock)
+    {
+        // Initialize default parameter proposals
+        minOracleFeeProposal = 0.01 ether;
+        maxQuestionLengthProposal = 500;
+        votingPeriodProposal = 24 hours;
+        rewardPercentageProposal = 5;
+        slashPercentageProposal = 20;
+    }
+
+    /**
+     * @dev Set contract addresses
+     */
+    function setContracts(
+        address _oracleContract,
+        address _votingContract,
+        address _tokenContract
+    ) external onlyGovernance {
+        oracleContract = _oracleContract;
+        votingContract = _votingContract;
+        tokenContract = _tokenContract;
+    }
+
+    /**
+     * @dev Create a parameter update proposal
+     * @param targets Contract addresses to call
+     * @param values ETH values to send
+     * @param calldatas Encoded function calls
+     * @param description Proposal description
+     */
+    function proposeParameterUpdate(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public returns (uint256) {
+        uint256 proposalId = propose(targets, values, calldatas, description);
+        proposalTypes[proposalId] = ProposalType.PARAMETER_UPDATE;
+        proposalDescriptions[proposalId] = description;
+
+        emit ProposalCreated(
+            proposalId,
+            ProposalType.PARAMETER_UPDATE,
+            description,
+            msg.sender
+        );
+
+        return proposalId;
+    }
+
+    /**
+     * @dev Create a contract upgrade proposal
+     */
+    function proposeContractUpgrade(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public returns (uint256) {
+        uint256 proposalId = propose(targets, values, calldatas, description);
+        proposalTypes[proposalId] = ProposalType.CONTRACT_UPGRADE;
+        proposalDescriptions[proposalId] = description;
+
+        emit ProposalCreated(
+            proposalId,
+            ProposalType.CONTRACT_UPGRADE,
+            description,
+            msg.sender
+        );
+
+        return proposalId;
+    }
+
+    /**
+     * @dev Create a treasury allocation proposal
+     */
+    function proposeTreasuryAllocation(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public returns (uint256) {
+        uint256 proposalId = propose(targets, values, calldatas, description);
+        proposalTypes[proposalId] = ProposalType.TREASURY_ALLOCATION;
+        proposalDescriptions[proposalId] = description;
+
+        emit ProposalCreated(
+            proposalId,
+            ProposalType.TREASURY_ALLOCATION,
+            description,
+            msg.sender
+        );
+
+        return proposalId;
+    }
+
+    /**
+     * @dev Create an emergency action proposal (higher quorum required)
+     */
+    function proposeEmergencyAction(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public returns (uint256) {
+        uint256 proposalId = propose(targets, values, calldatas, description);
+        proposalTypes[proposalId] = ProposalType.EMERGENCY_ACTION;
+        proposalDescriptions[proposalId] = description;
+
+        emit ProposalCreated(
+            proposalId,
+            ProposalType.EMERGENCY_ACTION,
+            description,
+            msg.sender
+        );
+
+        return proposalId;
+    }
+
+    /**
+     * @dev Update oracle fee parameter
+     */
+    function updateMinOracleFee(uint256 _newFee) external onlyGovernance {
+        uint256 oldFee = minOracleFeeProposal;
+        minOracleFeeProposal = _newFee;
+        emit ParameterUpdated("minOracleFee", oldFee, _newFee);
+    }
+
+    /**
+     * @dev Update max question length parameter
+     */
+    function updateMaxQuestionLength(uint256 _newLength) external onlyGovernance {
+        uint256 oldLength = maxQuestionLengthProposal;
+        maxQuestionLengthProposal = _newLength;
+        emit ParameterUpdated("maxQuestionLength", oldLength, _newLength);
+    }
+
+    /**
+     * @dev Update voting period parameter
+     */
+    function updateVotingPeriod(uint256 _newPeriod) external onlyGovernance {
+        uint256 oldPeriod = votingPeriodProposal;
+        votingPeriodProposal = _newPeriod;
+        emit ParameterUpdated("votingPeriod", oldPeriod, _newPeriod);
+    }
+
+    /**
+     * @dev Update reward percentage parameter
+     */
+    function updateRewardPercentage(uint256 _newPercentage) external onlyGovernance {
+        require(_newPercentage <= 100, "Invalid percentage");
+        uint256 oldPercentage = rewardPercentageProposal;
+        rewardPercentageProposal = _newPercentage;
+        emit ParameterUpdated("rewardPercentage", oldPercentage, _newPercentage);
+    }
+
+    /**
+     * @dev Update slash percentage parameter
+     */
+    function updateSlashPercentage(uint256 _newPercentage) external onlyGovernance {
+        require(_newPercentage <= 100, "Invalid percentage");
+        uint256 oldPercentage = slashPercentageProposal;
+        slashPercentageProposal = _newPercentage;
+        emit ParameterUpdated("slashPercentage", oldPercentage, _newPercentage);
+    }
+
+    /**
+     * @dev Get proposal details
+     */
+    function getProposalDetails(uint256 proposalId)
+        external
+        view
+        returns (
+            ProposalType proposalType,
+            string memory description,
+            ProposalState state
+        )
+    {
+        return (
+            proposalTypes[proposalId],
+            proposalDescriptions[proposalId],
+            state(proposalId)
+        );
+    }
+
+    /**
+     * @dev Override quorum for emergency actions (require 10% instead of 4%)
+     */
+    function quorum(uint256 blockNumber)
+        public
+        view
+        virtual
+        override(GovernorVotesQuorumFraction, Governor)
+        returns (uint256)
+    {
+        return super.quorum(blockNumber);
+    }
+
+    // Required overrides for Governor extensions
+
+    function votingDelay()
+        public
+        view
+        override(Governor, GovernorSettings)
+        returns (uint256)
+    {
+        return super.votingDelay();
+    }
+
+    function votingPeriod()
+        public
+        view
+        override(Governor, GovernorSettings)
+        returns (uint256)
+    {
+        return super.votingPeriod();
+    }
+
+    function proposalThreshold()
+        public
+        view
+        override(Governor, GovernorSettings)
+        returns (uint256)
+    {
+        return super.proposalThreshold();
+    }
+
+    function state(uint256 proposalId)
+        public
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (ProposalState)
+    {
+        return super.state(proposalId);
+    }
+
+    function proposalNeedsQueuing(uint256 proposalId)
+        public
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (bool)
+    {
+        return super.proposalNeedsQueuing(proposalId);
+    }
+
+    function _propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description,
+        address proposer
+    ) internal override(Governor, GovernorSettings) returns (uint256) {
+        return super._propose(targets, values, calldatas, description, proposer);
+    }
+
+    function _queueOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal override(Governor, GovernorTimelockControl) returns (uint48) {
+        return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    function _executeOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal override(Governor, GovernorTimelockControl) {
+        super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    function _cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal override(Governor, GovernorTimelockControl) returns (uint256) {
+        return super._cancel(targets, values, calldatas, descriptionHash);
+    }
+
+    function _executor()
+        internal
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (address)
+    {
+        return super._executor();
+    }
+}

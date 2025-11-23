@@ -5,22 +5,16 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "./interfaces/ITokenContract.sol";
 
 /**
  * @title OraiToken
  * @dev ERC20 token with staking functionality for the Orai oracle system
  */
-contract OraiToken is ERC20, ERC20Burnable, ERC20Pausable, AccessControl {
+contract OraiToken is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, ITokenContract {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant SLASHER_ROLE = keccak256("SLASHER_ROLE");
-
-    struct StakeInfo {
-        uint256 amount;
-        uint256 timestamp;
-        uint256 rewardDebt;
-        bool isStaked;
-    }
 
     mapping(address => StakeInfo) public stakes;
 
@@ -51,7 +45,7 @@ contract OraiToken is ERC20, ERC20Burnable, ERC20Pausable, AccessControl {
         _mint(msg.sender, 100_000_000 * 10**18); // 100M ORAI
     }
 
-    function stake(uint256 amount) external whenNotPaused {
+    function stake(uint256 amount) external override whenNotPaused {
         require(amount >= minStakeAmount, "Amount below minimum");
         require(balanceOf(msg.sender) >= amount, "Insufficient balance");
 
@@ -69,7 +63,7 @@ contract OraiToken is ERC20, ERC20Burnable, ERC20Pausable, AccessControl {
         emit Staked(msg.sender, amount, block.timestamp);
     }
 
-    function unstake(uint256 amount) external whenNotPaused {
+    function unstake(uint256 amount) external override whenNotPaused {
         StakeInfo storage stakeInfo = stakes[msg.sender];
         require(stakeInfo.isStaked, "No active stake");
         require(stakeInfo.amount >= amount, "Insufficient staked amount");
@@ -92,7 +86,7 @@ contract OraiToken is ERC20, ERC20Burnable, ERC20Pausable, AccessControl {
         emit Unstaked(msg.sender, amount, block.timestamp);
     }
 
-    function claimRewards() external whenNotPaused {
+    function claimRewards() external override whenNotPaused {
         updateReward(msg.sender);
 
         uint256 reward = calculateReward(msg.sender);
@@ -106,7 +100,7 @@ contract OraiToken is ERC20, ERC20Burnable, ERC20Pausable, AccessControl {
         emit RewardClaimed(msg.sender, reward, block.timestamp);
     }
 
-    function slash(address user, uint256 amount) external onlyRole(SLASHER_ROLE) {
+    function slash(address user, uint256 amount) external override onlyRole(SLASHER_ROLE) {
         StakeInfo storage stakeInfo = stakes[user];
         require(stakeInfo.amount >= amount, "Insufficient stake to slash");
 
@@ -146,7 +140,7 @@ contract OraiToken is ERC20, ERC20Burnable, ERC20Pausable, AccessControl {
             REWARD_PRECISION;
     }
 
-    function getStakeInfo(address user) external view returns (StakeInfo memory) {
+    function getStakeInfo(address user) external view override returns (StakeInfo memory) {
         return stakes[user];
     }
 

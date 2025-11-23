@@ -1,5 +1,6 @@
 import { createZGComputeNetworkBroker, ZGServingNetworkBroker } from '@0glabs/0g-serving-broker';
 import { ethers } from 'ethers';
+import OpenAI from 'openai';
 import { logger } from '../utils/logger';
 import {
   OGComputeJob,
@@ -100,7 +101,8 @@ export class Real0GComputeService {
         }, 'Low prepaid balance. Adding more funds...');
 
         try {
-          await this.broker.ledger.addLedger(1.5); // Add 1.5 0G
+          // Use depositFund for existing accounts (not addLedger which is for new accounts)
+          await this.broker.ledger.depositFund(1.5); // Add 1.5 0G
           await new Promise(resolve => setTimeout(resolve, 5000));
 
           const ledgerInfo = await this.broker.ledger.getLedger();
@@ -178,6 +180,42 @@ export class Real0GComputeService {
         model: modelName
       }, 'Submitting inference job to 0G Compute...');
 
+      // Check if provider signer is already acknowledged
+      const isAcknowledged = await this.broker.inference.userAcknowledged(provider.provider);
+      logger.info({
+        provider: provider.provider,
+        isAcknowledged
+      }, 'Checked provider acknowledgment status');
+
+      if (!isAcknowledged) {
+        // Transfer funds to provider if needed (creates provider-specific account)
+        try {
+          const transferAmount = ethers.parseEther('1.0'); // Transfer 1.0 0G to provider account (minimum required)
+          logger.info({
+            provider: provider.provider,
+            amount: '1.0 0G'
+          }, 'Transferring funds to provider account...');
+
+          await this.broker.ledger.transferFund(
+            provider.provider,
+            'inference',
+            transferAmount
+          );
+
+          logger.info('Provider account funded successfully');
+        } catch (error) {
+          // Account might already exist, continue
+          logger.warn({ error }, 'Provider fund transfer warning (may already be funded)');
+        }
+
+        // Acknowledge the provider signer (required before making inference requests)
+        logger.info({ provider: provider.provider }, 'Acknowledging provider signer...');
+        await this.broker.inference.acknowledgeProviderSigner(provider.provider);
+        logger.info('Provider signer acknowledged successfully');
+      } else {
+        logger.info({ provider: provider.provider }, 'Provider already acknowledged, skipping transfer and acknowledgment');
+      }
+
       // Prepare messages for the model
       const messages = [
         {
@@ -199,6 +237,7 @@ export class Real0GComputeService {
       }
 
       // Get authenticated headers for the request
+      logger.info({ provider: provider.provider }, 'Getting request headers from broker...');
       const headers = await this.broker.inference.getRequestHeaders(
         provider.provider,
         JSON.stringify({
@@ -209,6 +248,7 @@ export class Real0GComputeService {
           max_tokens: 500
         })
       );
+      logger.info({ headers: Object.keys(headers) }, 'Request headers obtained');
 
       // Create job record
       const job: OGComputeJob = {
@@ -228,27 +268,55 @@ export class Real0GComputeService {
       this.jobRegistry.set(jobId, job);
 
       // Make the inference request
-      const endpoint = provider.url || `https://api.0g.ai/v1`;
-      const response = await fetch(`${endpoint}/chat/completions`, {
+      const endpoint = provider.url || `https://api.0g.ai`;
+      const requestUrl = `${endpoint}/v1/chat/completions`;
+      const requestBody = {
+        model: modelName,
+        messages,
+        stream: false,
+        temperature: 0.7,
+        max_tokens: 500
+      };
+
+      logger.info({
+        jobId,
+        endpoint: requestUrl,
+        model: modelName,
+        messageCount: messages.length
+      }, 'Making inference request...');
+
+      const response = await fetch(requestUrl, {
         method: 'POST',
         headers: {
           ...headers,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          model: modelName,
-          messages,
-          stream: false,
-          temperature: 0.7,
-          max_tokens: 500
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      logger.info({
+        jobId,
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      }, 'Received response from provider');
+
       if (!response.ok) {
-        throw new Error(`Inference request failed: ${response.statusText}`);
+        const errorText = await response.text();
+        logger.error({
+          jobId,
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText
+        }, 'Inference request failed');
+        throw new Error(`Inference request failed: ${response.statusText} - ${errorText}`);
       }
 
-      const result = await response.json();
+      const responseText = await response.text();
+      logger.debug({ jobId, responseText }, 'Raw response text');
+
+      const result = JSON.parse(responseText);
 
       // Verify response if provider is verifiable (TEE)
       if (provider.verifiable) {
@@ -293,14 +361,21 @@ export class Real0GComputeService {
         estimatedTime: 0 // Already completed
       };
     } catch (error) {
-      logger.error({ error }, 'Failed to submit inference job');
+      logger.error({
+        error,
+        errorType: error?.constructor?.name,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorDetails: error
+      }, 'Failed to submit inference job');
 
       if (error instanceof OGServiceError) {
         throw error;
       }
 
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       throw new OGServiceError(
-        'Inference job submission failed',
+        `Inference job submission failed: ${errorMessage}`,
         OGErrorCode.COMPUTE_ERROR,
         500,
         error

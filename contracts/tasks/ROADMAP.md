@@ -1,27 +1,27 @@
 # Development Roadmap - Orai Smart Contracts
 
-## Week 1: Foundation
+## Week 1: Foundation ✅ COMPLETED
 **Goal**: Set up project and implement token contract
 
 ### Monday-Tuesday
-- [ ] Initialize Hardhat project
-- [ ] Configure for 0G testnet
-- [ ] Set up development environment
+- [x] Initialize Hardhat project ✅
+- [x] Configure for 0G testnet ✅
+- [x] Set up development environment ✅
 
 ### Wednesday-Friday
-- [ ] Implement OraiToken.sol
-- [ ] Write token tests
-- [ ] Test staking/unstaking mechanics
+- [x] Implement OraiToken.sol ✅
+- [x] Write token tests ✅
+- [x] Test staking/unstaking mechanics ✅
 
 ---
 
-## Week 2: Core Logic
+## Week 2: Core Logic 🔄 IN PROGRESS
 **Goal**: Build voting and oracle contracts
 
-### Monday-Tuesday
-- [ ] Implement VotingContract.sol
-- [ ] Test voting mechanisms
-- [ ] Verify vote counting logic
+### Monday-Tuesday ✅ COMPLETED
+- [x] Implement VotingContract.sol ✅
+- [x] Test voting mechanisms ✅
+- [x] Verify vote counting logic ✅
 
 ### Wednesday-Friday
 - [ ] Implement OracleContract.sol
@@ -77,11 +77,11 @@ graph LR
 
 | Milestone | Target Date | Status |
 |-----------|------------|--------|
-| Project Setup | Day 2 | ⏳ Pending |
-| Token Contract | Day 5 | ⏳ Pending |
-| Voting Contract | Day 8 | ⏳ Pending |
-| Oracle Contract | Day 12 | ⏳ Pending |
-| All Tests Pass | Day 18 | ⏳ Pending |
+| Project Setup | Day 2 | ✅ Complete |
+| Token Contract | Day 5 | ✅ Complete |
+| Voting Contract | Day 8 | ✅ Complete |
+| Oracle Contract | Day 12 | 🔄 In Progress |
+| All Tests Pass | Day 18 | 🔄 Partial (33/80) |
 | Testnet Deploy | Day 20 | ⏳ Pending |
 | Audit Ready | Day 25 | ⏳ Pending |
 
