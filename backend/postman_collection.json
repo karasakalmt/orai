@@ -1,28 +1,80 @@
 {
   "info": {
     "name": "Orai Oracle API",
-    "description": "Decentralized AI-verified oracle on 0G infrastructure",
+    "description": "Decentralized AI-verified oracle on 0G infrastructure. This collection includes all API endpoints for the Orai backend system.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "_postman_id": "orai-oracle-api-v1"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3001",
-      "type": "string"
+      "type": "string",
+      "description": "Base URL for the API"
     },
     {
       "key": "authToken",
       "value": "",
-      "type": "string"
+      "type": "string",
+      "description": "JWT authentication token"
+    },
+    {
+      "key": "backendSecret",
+      "value": "",
+      "type": "string",
+      "description": "Backend secret for internal endpoints"
+    },
+    {
+      "key": "walletAddress",
+      "value": "0x1234567890123456789012345678901234567890",
+      "type": "string",
+      "description": "Example wallet address"
+    },
+    {
+      "key": "questionId",
+      "value": "",
+      "type": "string",
+      "description": "Current question ID for testing"
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
   "item": [
     {
       "name": "Health & Info",
+      "description": "System health and information endpoints",
       "item": [
         {
           "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Services are healthy\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"healthy\");",
+                  "    pm.expect(jsonData.services.database).to.eql(\"connected\");",
+                  "    pm.expect(jsonData.services.redis).to.eql(\"connected\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -31,11 +83,70 @@
               "host": ["{{baseUrl}}"],
               "path": ["health"]
             },
-            "description": "Check if the server is running and healthy"
-          }
+            "description": "Check if the server is running and healthy. Returns status of database and Redis connections."
+          },
+          "response": [
+            {
+              "name": "Healthy Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": \"2025-11-21T20:28:25.877Z\",\n  \"version\": \"1.0.0\",\n  \"environment\": \"development\",\n  \"services\": {\n    \"database\": \"connected\",\n    \"redis\": \"connected\"\n  }\n}"
+            },
+            {
+              "name": "Degraded Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"status\": \"degraded\",\n  \"timestamp\": \"2025-11-21T20:28:25.877Z\",\n  \"version\": \"1.0.0\",\n  \"environment\": \"development\",\n  \"services\": {\n    \"database\": \"connected\",\n    \"redis\": \"disconnected\"\n  }\n}"
+            }
+          ]
         },
         {
           "name": "API Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"API info is correct\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.name).to.eql(\"Orai Oracle API\");",
+                  "    pm.expect(jsonData.version).to.eql(\"1.0.0\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -45,15 +156,73 @@
               "path": ["api"]
             },
             "description": "Get general API information and available endpoints"
-          }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"name\": \"Orai Oracle API\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Decentralized AI-verified oracle on 0G\",\n  \"endpoints\": {\n    \"health\": \"/health\",\n    \"questions\": \"/api/questions\",\n    \"answers\": \"/api/answers\",\n    \"votes\": \"/api/votes\",\n    \"users\": \"/api/user/:address\"\n  }\n}"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Questions",
+      "description": "Question submission and retrieval endpoints",
       "item": [
         {
           "name": "Submit Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"questionId\", jsonData.questionId);",
+                  "    ",
+                  "    pm.test(\"Question submitted successfully\", function () {",
+                  "        pm.expect(jsonData.success).to.be.true;",
+                  "        pm.expect(jsonData.questionId).to.be.a('string');",
+                  "        pm.expect(jsonData.txHash).to.be.a('string');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate a random question for testing",
+                  "const questions = [",
+                  "    \"What is the current price of ETH?\",",
+                  "    \"What is the total market cap of Bitcoin?\",",
+                  "    \"How many transactions were on Ethereum yesterday?\",",
+                  "    \"What is the current gas price on Ethereum?\",",
+                  "    \"What is the APY for staking ETH?\"",
+                  "];",
+                  "",
+                  "const randomQuestion = questions[Math.floor(Math.random() * questions.length)];",
+                  "pm.variables.set(\"randomQuestion\", randomQuestion);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -64,7 +233,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"questionText\": \"What is the current price of ETH?\",\n  \"referenceUrls\": [\"https://coinmarketcap.com\"],\n  \"submitter\": \"0x1234567890123456789012345678901234567890\"\n}"
+              "raw": "{\n  \"questionText\": \"{{randomQuestion}}\",\n  \"referenceUrls\": [\n    \"https://coinmarketcap.com\",\n    \"https://coingecko.com\"\n  ],\n  \"submitter\": \"{{walletAddress}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/questions",
@@ -72,30 +241,150 @@
               "path": ["api", "questions"]
             },
             "description": "Submit a new question to the oracle (max 500 chars, max 5 URLs)"
-          }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionText\": \"What is the current price of ETH?\",\n  \"referenceUrls\": [\"https://coinmarketcap.com\"],\n  \"submitter\": \"0x1234567890123456789012345678901234567890\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/questions",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "questions"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"questionId\": \"q_1234567890abcdef\",\n  \"txHash\": \"0xabcdef1234567890...\",\n  \"estimatedAnswerTime\": 30\n}"
+            },
+            {
+              "name": "Validation Error",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionText\": \"Short\",\n  \"submitter\": \"invalid-address\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/questions",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "questions"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"message\": \"Validation failed\",\n    \"code\": \"VALIDATION_ERROR\",\n    \"statusCode\": 400,\n    \"details\": [\n      {\n        \"field\": \"questionText\",\n        \"message\": \"Question must be at least 10 characters\"\n      },\n      {\n        \"field\": \"submitter\",\n        \"message\": \"Invalid Ethereum address\"\n      }\n    ]\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Get Question by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Question details are present\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('questionText');",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/questions/:id",
+              "raw": "{{baseUrl}}/api/questions/{{questionId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "questions", ":id"],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "question-id-here",
-                  "description": "The question ID"
-                }
-              ]
+              "path": ["api", "questions", "{{questionId}}"]
             },
             "description": "Get details of a specific question by ID"
-          }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/questions/q_1234567890abcdef",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "questions", "q_1234567890abcdef"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"q_1234567890abcdef\",\n  \"questionText\": \"What is the current price of ETH?\",\n  \"referenceUrls\": [\"https://coinmarketcap.com\"],\n  \"submitter\": \"0x1234567890123456789012345678901234567890\",\n  \"status\": \"answer_available\",\n  \"timestamp\": 1700000000000,\n  \"feePaid\": \"0.12\",\n  \"answer\": {\n    \"answerText\": \"The current price of ETH is $3,245.67 USD\",\n    \"evidenceSummary\": \"Based on data from CoinMarketCap...\",\n    \"verified\": true,\n    \"votingStats\": {\n      \"votesCorrect\": 75,\n      \"votesIncorrect\": 5,\n      \"totalVotingPower\": 10000,\n      \"finalized\": true\n    }\n  }\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/questions/invalid-id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "questions", "invalid-id"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"message\": \"Question not found\",\n    \"code\": \"NOT_FOUND\",\n    \"statusCode\": 404\n  }\n}"
+            }
+          ]
         },
         {
           "name": "List Questions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('questions');",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "    pm.expect(jsonData).to.have.property('hasMore');",
+                  "    pm.expect(jsonData.questions).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -121,7 +410,7 @@
                 },
                 {
                   "key": "submitter",
-                  "value": "",
+                  "value": "{{walletAddress}}",
                   "description": "Filter by submitter address",
                   "disabled": true
                 },
@@ -138,35 +427,124 @@
               ]
             },
             "description": "List questions with pagination and filters"
-          }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/questions?limit=2&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "questions"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "2"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"questions\": [\n    {\n      \"id\": \"q_1234567890abcdef\",\n      \"questionText\": \"What is the current price of ETH?\",\n      \"submitter\": \"0x1234567890123456789012345678901234567890\",\n      \"status\": \"verified\",\n      \"timestamp\": 1700000000000,\n      \"feePaid\": \"0.12\"\n    },\n    {\n      \"id\": \"q_fedcba0987654321\",\n      \"questionText\": \"What is the total Bitcoin market cap?\",\n      \"submitter\": \"0xabcdef1234567890123456789012345678901234\",\n      \"status\": \"voting_open\",\n      \"timestamp\": 1699999000000,\n      \"feePaid\": \"0.15\"\n    }\n  ],\n  \"total\": 150,\n  \"hasMore\": true\n}"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Answers",
+      "description": "Answer retrieval and submission endpoints",
       "item": [
         {
           "name": "Get Answer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.test(\"Answer is present\", function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('answerText');",
+                  "        pm.expect(jsonData).to.have.property('evidenceSummary');",
+                  "        pm.expect(jsonData).to.have.property('storageHash');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/answers/:questionId",
+              "raw": "{{baseUrl}}/api/answers/{{questionId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "answers", ":questionId"],
-              "variable": [
-                {
-                  "key": "questionId",
-                  "value": "question-id-here",
-                  "description": "The question ID to get answer for"
-                }
-              ]
+              "path": ["api", "answers", "{{questionId}}"]
             },
             "description": "Get the AI-generated answer for a specific question"
-          }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/answers/q_1234567890abcdef",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "answers", "q_1234567890abcdef"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"questionId\": \"q_1234567890abcdef\",\n  \"answerText\": \"The current price of ETH is $3,245.67 USD based on the latest market data.\",\n  \"evidenceSummary\": \"Data aggregated from CoinMarketCap (primary source) and CoinGecko (secondary source) as of 2024-11-21 20:30:00 UTC. Price reflects spot trading on major exchanges including Binance, Coinbase, and Kraken.\",\n  \"storageHash\": \"0xabcd1234567890ef...\",\n  \"modelHash\": \"0x1234abcd567890ef...\",\n  \"inputHash\": \"0xef1234567890abcd...\",\n  \"outputHash\": \"0x90abcdef12345678...\",\n  \"timestamp\": 1700000000000,\n  \"verified\": true,\n  \"votingStats\": {\n    \"votesCorrect\": 75,\n    \"votesIncorrect\": 5,\n    \"totalVotingPower\": 10000,\n    \"votingEndTime\": 1700086400000,\n    \"finalized\": true\n  }\n}"
+            },
+            {
+              "name": "Answer Not Ready",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/answers/q_pending123",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "answers", "q_pending123"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"message\": \"Answer not yet available\",\n    \"code\": \"ANSWER_NOT_READY\",\n    \"statusCode\": 404,\n    \"questionStatus\": \"computing\"\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Submit Answer (Internal)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// This endpoint requires backend secret authentication",
+                  "pm.request.headers.add({",
+                  "    key: 'Authorization',",
+                  "    value: 'Bearer ' + pm.collectionVariables.get('backendSecret')",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -176,29 +554,114 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{authToken}}",
+                "value": "Bearer {{backendSecret}}",
                 "description": "Backend secret token"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"questionId\": \"question-id-here\",\n  \"answerText\": \"The current price of ETH is $3,200\",\n  \"evidenceSummary\": \"Based on CoinMarketCap data...\",\n  \"storageHash\": \"0xabc123...\",\n  \"modelHash\": \"0xdef456...\",\n  \"inputHash\": \"0xghi789...\",\n  \"outputHash\": \"0xjkl012...\",\n  \"computeNodeId\": \"node-001\"\n}"
+              "raw": "{\n  \"questionId\": \"{{questionId}}\",\n  \"answerText\": \"The current price of ETH is $3,245.67 USD based on the latest market data.\",\n  \"evidenceSummary\": \"Data aggregated from CoinMarketCap and CoinGecko as of 2024-11-21 20:30:00 UTC.\",\n  \"storageHash\": \"0xabc123def456789012345678901234567890123456789012345678901234567890\",\n  \"modelHash\": \"0xdef456789012345678901234567890123456789012345678901234567890abcd\",\n  \"inputHash\": \"0x789012345678901234567890123456789012345678901234567890abcdef456\",\n  \"outputHash\": \"0x345678901234567890123456789012345678901234567890abcdef456789012\",\n  \"computeNodeId\": \"node-001\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/answers",
               "host": ["{{baseUrl}}"],
               "path": ["api", "answers"]
             },
-            "description": "Backend-only endpoint to submit answers from 0G compute"
-          }
+            "description": "Backend-only endpoint to submit answers from 0G compute. Requires backend secret authentication."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer secret-token-here"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionId\": \"q_1234567890abcdef\",\n  \"answerText\": \"The current price of ETH is $3,245.67\",\n  \"evidenceSummary\": \"Based on CoinMarketCap data...\",\n  \"storageHash\": \"0xabc123...\",\n  \"modelHash\": \"0xdef456...\",\n  \"inputHash\": \"0xghi789...\",\n  \"outputHash\": \"0xjkl012...\",\n  \"computeNodeId\": \"node-001\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/answers",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "answers"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Answer submitted successfully\",\n  \"votingStartTime\": 1700000000000,\n  \"votingEndTime\": 1700086400000\n}"
+            },
+            {
+              "name": "Unauthorized",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionId\": \"q_1234567890abcdef\",\n  \"answerText\": \"Test answer\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/answers",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "answers"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"message\": \"Unauthorized: Invalid or missing backend secret\",\n    \"code\": \"UNAUTHORIZED\",\n    \"statusCode\": 401\n  }\n}"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Voting",
+      "description": "Voting and validation endpoints",
       "item": [
         {
           "name": "Cast Vote",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate EIP-712 signature",
+                  "// In production, this would be signed by the user's wallet",
+                  "const mockSignature = '0x' + '1234567890abcdef'.repeat(8);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.test(\"Vote cast successfully\", function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.success).to.be.true;",
+                  "        pm.expect(jsonData).to.have.property('txHash');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -209,7 +672,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"questionId\": \"question-id-here\",\n  \"voter\": \"0x1234567890123456789012345678901234567890\",\n  \"choice\": \"correct\",\n  \"votingPower\": 100,\n  \"signature\": \"0xsignature...\"\n}"
+              "raw": "{\n  \"questionId\": \"{{questionId}}\",\n  \"voter\": \"{{walletAddress}}\",\n  \"choice\": \"correct\",\n  \"votingPower\": 100,\n  \"signature\": \"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/votes",
@@ -217,54 +680,268 @@
               "path": ["api", "votes"]
             },
             "description": "Cast a vote on an answer (correct/incorrect/abstain) with EIP-712 signature"
-          }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionId\": \"q_1234567890abcdef\",\n  \"voter\": \"0x1234567890123456789012345678901234567890\",\n  \"choice\": \"correct\",\n  \"votingPower\": 100,\n  \"signature\": \"0xsignature...\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/votes",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "votes"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"txHash\": \"0xtransactionhash123...\",\n  \"votingStats\": {\n    \"votesCorrect\": 76,\n    \"votesIncorrect\": 5,\n    \"totalVotingPower\": 10100,\n    \"votingEndTime\": 1700086400000,\n    \"finalized\": false\n  }\n}"
+            },
+            {
+              "name": "Already Voted",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionId\": \"q_1234567890abcdef\",\n  \"voter\": \"0x1234567890123456789012345678901234567890\",\n  \"choice\": \"correct\",\n  \"votingPower\": 100,\n  \"signature\": \"0xsignature...\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/votes",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "votes"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"message\": \"User has already voted on this question\",\n    \"code\": \"ALREADY_VOTED\",\n    \"statusCode\": 409\n  }\n}"
+            },
+            {
+              "name": "Invalid Signature",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questionId\": \"q_1234567890abcdef\",\n  \"voter\": \"0x1234567890123456789012345678901234567890\",\n  \"choice\": \"correct\",\n  \"votingPower\": 100,\n  \"signature\": \"0xinvalid\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/votes",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "votes"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"message\": \"Invalid signature\",\n    \"code\": \"INVALID_SIGNATURE\",\n    \"statusCode\": 400\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Get Voting Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Voting info is present\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData).to.have.property('votingStats');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "X-User-Address",
+                "value": "{{walletAddress}}",
+                "description": "Optional: Include to get user's vote",
+                "disabled": true
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/api/votes/:questionId",
+              "raw": "{{baseUrl}}/api/votes/{{questionId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "votes", ":questionId"],
-              "variable": [
-                {
-                  "key": "questionId",
-                  "value": "question-id-here",
-                  "description": "The question ID to get voting info for"
-                }
-              ]
+              "path": ["api", "votes", "{{questionId}}"]
             },
             "description": "Get voting statistics and status for a question"
-          }
+          },
+          "response": [
+            {
+              "name": "Voting Open",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/votes/q_1234567890abcdef",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "votes", "q_1234567890abcdef"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"questionId\": \"q_1234567890abcdef\",\n  \"status\": \"open\",\n  \"endTime\": 1700086400000,\n  \"quorumReached\": false,\n  \"votingStats\": {\n    \"votesCorrect\": 45,\n    \"votesIncorrect\": 3,\n    \"totalVotingPower\": 4800,\n    \"votingEndTime\": 1700086400000,\n    \"finalized\": false\n  },\n  \"userVote\": null\n}"
+            },
+            {
+              "name": "Voting Finalized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-User-Address",
+                    "value": "0x1234567890123456789012345678901234567890"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/votes/q_completed123",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "votes", "q_completed123"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"questionId\": \"q_completed123\",\n  \"status\": \"finalized\",\n  \"endTime\": 1700000000000,\n  \"quorumReached\": true,\n  \"votingStats\": {\n    \"votesCorrect\": 85,\n    \"votesIncorrect\": 5,\n    \"totalVotingPower\": 12000,\n    \"votingEndTime\": 1700000000000,\n    \"finalized\": true\n  },\n  \"userVote\": {\n    \"choice\": \"correct\",\n    \"votingPower\": 100,\n    \"timestamp\": 1699999000000\n  }\n}"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Users",
+      "description": "User profile and statistics endpoints",
       "item": [
         {
           "name": "Get User Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"User profile has required fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('address');",
+                  "    pm.expect(jsonData).to.have.property('totalQuestions');",
+                  "    pm.expect(jsonData).to.have.property('totalVotes');",
+                  "    pm.expect(jsonData).to.have.property('reputationScore');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/user/:address",
+              "raw": "{{baseUrl}}/api/user/{{walletAddress}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "user", ":address"],
-              "variable": [
-                {
-                  "key": "address",
-                  "value": "0x1234567890123456789012345678901234567890",
-                  "description": "The user's wallet address"
-                }
-              ]
+              "path": ["api", "user", "{{walletAddress}}"]
             },
             "description": "Get user profile including statistics, reputation, and history"
-          }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/user/0x1234567890123456789012345678901234567890",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "user", "0x1234567890123456789012345678901234567890"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"address\": \"0x1234567890123456789012345678901234567890\",\n  \"totalQuestions\": 15,\n  \"totalVotes\": 42,\n  \"reputationScore\": 850,\n  \"stakedTokens\": \"1000.50\",\n  \"rewardsEarned\": \"125.75\",\n  \"questionsSubmitted\": [\n    \"q_1234567890abcdef\",\n    \"q_fedcba0987654321\",\n    \"q_aabbccddee112233\"\n  ],\n  \"votingHistory\": [\n    {\n      \"questionId\": \"q_xyz789\",\n      \"choice\": \"correct\",\n      \"votingPower\": \"100\",\n      \"timestamp\": 1699999000000,\n      \"rewarded\": true\n    },\n    {\n      \"questionId\": \"q_abc456\",\n      \"choice\": \"incorrect\",\n      \"votingPower\": \"50\",\n      \"timestamp\": 1699998000000,\n      \"rewarded\": false\n    }\n  ],\n  \"joinedAt\": 1690000000000\n}"
+            },
+            {
+              "name": "New User",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/user/0xnewuser1234567890123456789012345678901234",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "user", "0xnewuser1234567890123456789012345678901234"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"address\": \"0xnewuser1234567890123456789012345678901234\",\n  \"totalQuestions\": 0,\n  \"totalVotes\": 0,\n  \"reputationScore\": 0,\n  \"stakedTokens\": \"0\",\n  \"rewardsEarned\": \"0\",\n  \"questionsSubmitted\": [],\n  \"votingHistory\": [],\n  \"joinedAt\": 1700000000000\n}"
+            }
+          ]
         }
       ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "console.log('Request URL:', pm.request.url.toString());",
+          "console.log('Request Method:', pm.request.method);"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "pm.test(\"Response time is less than 2000ms\", function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});",
+          "",
+          "// Log response for debugging",
+          "if (pm.response.code >= 400) {",
+          "    console.log('Error Response:', pm.response.text());",
+          "}"
+        ]
+      }
     }
   ]
 }

@@ -1,0 +1,99 @@
+[
+  {
+    "inputs": [{"internalType": "address", "name": "_treasury", "type": "address"}],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "bytes32", "name": "questionId", "type": "bytes32"},
+      {"indexed": true, "internalType": "address", "name": "relayer", "type": "address"},
+      {"indexed": false, "internalType": "string", "name": "answer", "type": "string"},
+      {"indexed": false, "internalType": "bytes32", "name": "storageHash", "type": "bytes32"}
+    ],
+    "name": "AnswerSubmitted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "bytes32", "name": "questionId", "type": "bytes32"},
+      {"indexed": true, "internalType": "address", "name": "asker", "type": "address"},
+      {"indexed": false, "internalType": "string", "name": "question", "type": "string"},
+      {"indexed": false, "internalType": "uint256", "name": "fee", "type": "uint256"}
+    ],
+    "name": "QuestionSubmitted",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {"internalType": "string", "name": "question", "type": "string"},
+      {"internalType": "string[]", "name": "referenceUrls", "type": "string[]"}
+    ],
+    "name": "queryOracle",
+    "outputs": [{"internalType": "bytes32", "name": "questionId", "type": "bytes32"}],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "bytes32", "name": "questionId", "type": "bytes32"}],
+    "name": "getQuestion",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "address", "name": "asker", "type": "address"},
+          {"internalType": "string", "name": "question", "type": "string"},
+          {"internalType": "string[]", "name": "referenceUrls", "type": "string[]"},
+          {"internalType": "uint256", "name": "fee", "type": "uint256"},
+          {"internalType": "uint256", "name": "timestamp", "type": "uint256"},
+          {"internalType": "bool", "name": "answered", "type": "bool"},
+          {"internalType": "bool", "name": "finalized", "type": "bool"}
+        ],
+        "internalType": "struct OracleContract.Question",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "bytes32", "name": "questionId", "type": "bytes32"}],
+    "name": "getAnswer",
+    "outputs": [
+      {"internalType": "string", "name": "answer", "type": "string"},
+      {"internalType": "bool", "name": "verified", "type": "bool"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "bytes32", "name": "questionId", "type": "bytes32"},
+      {"internalType": "string", "name": "answer", "type": "string"},
+      {"internalType": "bytes32", "name": "storageHash", "type": "bytes32"},
+      {"internalType": "bytes32", "name": "modelHash", "type": "bytes32"},
+      {"internalType": "bytes32", "name": "inputHash", "type": "bytes32"},
+      {"internalType": "bytes32", "name": "outputHash", "type": "bytes32"}
+    ],
+    "name": "submitAnswer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minOracleFee",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalQuestions",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

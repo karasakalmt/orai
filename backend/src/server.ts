@@ -1,34 +1,86 @@
-import { buildApp } from './app';
-import { logger } from './utils/logger';
+import express, { Express, Request, Response } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { Server } from 'socket.io';
+import http from 'http';
 
-const start = async () => {
-  try {
-    const app = await buildApp();
-    const port = process.env.PORT || 3001;
+// Import routes
+import questionsRouter from './routes/questions';
+import validationsRouter from './routes/validations';
+import oracleRouter from './routes/oracle';
 
-    await app.listen({ port: Number(port), host: '0.0.0.0' });
+// Load environment variables
+dotenv.config();
 
-    logger.info(`🚀 Server listening on port ${port}`);
-    logger.info(`📍 Health check: http://localhost:${port}/health`);
-    logger.info(`📝 API info: http://localhost:${port}/api`);
-    logger.info(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
-  } catch (err) {
-    logger.error({ err }, 'Failed to start server');
-    console.error('Server startup error:', err);
-    process.exit(1);
+// Create Express app
+const app: Express = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    methods: ['GET', 'POST']
   }
-};
-
-// Handle graceful shutdown
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM signal received: closing HTTP server');
-  process.exit(0);
 });
 
-process.on('SIGINT', async () => {
-  logger.info('SIGINT signal received: closing HTTP server');
-  process.exit(0);
+// Middleware
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  credentials: true
+}));
+app.use(express.json());
+
+// Health check
+app.get('/health', (req: Request, res: Response) => {
+  res.json({
+    status: 'ok',
+    timestamp: Date.now(),
+    version: '1.0.0'
+  });
 });
 
-// Start the server
-start();
+// API Routes
+app.use('/api/questions', questionsRouter);
+app.use('/api/validations', validationsRouter);
+app.use('/api/oracle', oracleRouter);
+
+// WebSocket handling
+io.on('connection', (socket) => {
+  console.log('New WebSocket connection:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('WebSocket disconnected:', socket.id);
+  });
+
+  // Subscribe to question updates
+  socket.on('subscribe:questions', () => {
+    socket.join('questions');
+  });
+
+  // Subscribe to validation updates
+  socket.on('subscribe:validations', () => {
+    socket.join('validations');
+  });
+});
+
+// Export io for use in other modules
+export { io };
+
+// Error handling middleware
+app.use((err: any, req: Request, res: Response, next: any) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    error: {
+      code: err.code || 'INTERNAL_ERROR',
+      message: err.message || 'Internal server error',
+      details: err.details || {}
+    }
+  });
+});
+
+// Start server
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
+  console.log(`✨ Server running on http://localhost:${PORT}`);
+  console.log(`📦 API available at http://localhost:${PORT}/api`);
+  console.log(`🔌 WebSocket server ready`);
+});

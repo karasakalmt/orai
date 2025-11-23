@@ -1,0 +1,54 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "bytes32", "name": "questionId", "type": "bytes32"},
+      {"indexed": true, "internalType": "address", "name": "voter", "type": "address"},
+      {"indexed": false, "internalType": "bool", "name": "approved", "type": "bool"},
+      {"indexed": false, "internalType": "uint256", "name": "stake", "type": "uint256"}
+    ],
+    "name": "VoteCast",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {"internalType": "bytes32", "name": "questionId", "type": "bytes32"},
+      {"internalType": "bool", "name": "approved", "type": "bool"}
+    ],
+    "name": "castVote",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "bytes32", "name": "questionId", "type": "bytes32"},
+      {"internalType": "address", "name": "asker", "type": "address"},
+      {"internalType": "uint256", "name": "fee", "type": "uint256"}
+    ],
+    "name": "startVoting",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "bytes32", "name": "questionId", "type": "bytes32"}],
+    "name": "getVotingResults",
+    "outputs": [
+      {"internalType": "bool", "name": "approved", "type": "bool"},
+      {"internalType": "uint256", "name": "voteCount", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "bytes32", "name": "questionId", "type": "bytes32"},
+      {"internalType": "address", "name": "voter", "type": "address"}
+    ],
+    "name": "hasVoted",
+    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

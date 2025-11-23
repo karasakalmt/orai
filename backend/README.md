@@ -82,7 +82,33 @@ src/
 
 ## 📚 API Documentation
 
-Import the Postman collection from `postman_collection.json` for full API documentation and testing.
+### Postman Collection
+The project includes comprehensive API documentation in Postman format:
+
+1. **Import the collection:**
+   - Open Postman
+   - Click "Import" → Select `postman_collection.json`
+   - The collection includes all endpoints with example requests and responses
+
+2. **Import the environment:**
+   - In Postman, go to Environments
+   - Click "Import" → Select `postman_environment.json`
+   - Update the environment variables as needed (especially `backendSecret`)
+
+3. **Features included:**
+   - ✅ All API endpoints with descriptions
+   - ✅ Example requests and responses
+   - ✅ Pre-request scripts for dynamic data
+   - ✅ Test scripts for response validation
+   - ✅ Environment variables for easy configuration
+   - ✅ Global error handling and response time checks
+
+4. **Collection structure:**
+   - Health & Info - System status endpoints
+   - Questions - Question submission and retrieval
+   - Answers - AI-generated answer endpoints
+   - Voting - Token-weighted voting system
+   - Users - Profile and statistics
 
 ## 🔐 Environment Variables
 
