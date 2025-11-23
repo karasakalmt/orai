@@ -68,9 +68,9 @@ export function Home() {
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold mb-6">
                 1
               </div>
-              <h3 className="text-xl font-semibold mb-3">Ask Your Question</h3>
+              <h3 className="text-xl font-semibold mb-3">Ask Question</h3>
               <p className="text-gray-600">
-                Submit any question to the oracle. Pay a small fee in ORAI tokens for processing.
+                Submit your question through the oracle smart contract. Pay a small fee in 0G tokens for AI processing.
               </p>
             </div>
 
@@ -78,9 +78,9 @@ export function Home() {
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold mb-6">
                 2
               </div>
-              <h3 className="text-xl font-semibold mb-3">AI Processing</h3>
+              <h3 className="text-xl font-semibold mb-3">Connect Your Contract</h3>
               <p className="text-gray-600">
-                Distributed AI nodes on 0G Network process your question and generate verified answers.
+                Integrate Orai Oracle into your smart contract to access verified AI answers on-chain.
               </p>
             </div>
 
@@ -88,9 +88,9 @@ export function Home() {
               <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold mb-6">
                 3
               </div>
-              <h3 className="text-xl font-semibold mb-3">Community Validation</h3>
+              <h3 className="text-xl font-semibold mb-3">Get AI Validated Data</h3>
               <p className="text-gray-600">
-                Token holders vote on answer accuracy. Consensus determines the final verified result.
+                Receive cryptographically verified AI answers stored on 0G Network with proof of computation.
               </p>
             </div>
           </div>
@@ -227,14 +227,14 @@ export function Home() {
               <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-lg mb-4 flex items-center justify-center text-white text-xl">
                 🔒
               </div>
-              <h3 className="font-bold text-gray-900 mb-2">Security</h3>
+              <h3 className="font-bold text-gray-900 mb-2">Verifiable AI</h3>
               <p className="text-sm text-gray-600 mb-3">
-                Enterprise-grade security with multiple protection layers
+                Cryptographically verified AI inference with data availability proofs
               </p>
               <ul className="text-xs text-gray-500 space-y-1">
-                <li>• Access control</li>
-                <li>• Reentrancy guards</li>
-                <li>• Pausable system</li>
+                <li>• Storage proofs</li>
+                <li>• Model verification</li>
+                <li>• Output attestation</li>
               </ul>
             </div>
           </div>

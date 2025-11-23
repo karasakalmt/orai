@@ -10,10 +10,24 @@ export async function questionsRoutes(fastify: FastifyInstance) {
     try {
       const { status, sortBy, search, page = '1', limit = '20' } = request.query as any;
 
-      // Fetch real questions from blockchain database
-      let allQuestions = await eventMonitor.getAllQuestionsWithAnswers();
+      // Fetch all questions from database (both from blockchain events and relayer)
+      const dbQuestions = await prisma.question.findMany({
+        include: {
+          answer: {
+            include: {
+              votingStats: true
+            }
+          },
+          votes: true
+        },
+        orderBy: {
+          timestamp: 'desc'
+        }
+      });
 
-      // Map to expected format
+      let allQuestions = dbQuestions;
+
+      // Map to expected format with verification and storage data
       let filtered = allQuestions.map((q: any) => ({
         id: q.questionId,
         question: q.questionText,
@@ -27,7 +41,20 @@ export async function questionsRoutes(fastify: FastifyInstance) {
           yes: q.answer?.votingStats?.votesCorrect || 0,
           no: q.answer?.votingStats?.votesIncorrect || 0
         },
-        references: q.referenceUrls || []
+        references: q.referenceUrls || [],
+        // Verification & Storage Data
+        verification: q.answer ? {
+          verified: q.answer.verified,
+          modelHash: q.answer.modelHash,
+          inputHash: q.answer.inputHash,
+          outputHash: q.answer.outputHash,
+          evidenceSummary: q.answer.evidenceSummary
+        } : null,
+        storage: q.answer ? {
+          storageHash: q.answer.storageHash,
+          storageUrl: `https://storagescan-galileo.0g.ai/hash/${q.answer.storageHash}`,
+          timestamp: new Date(q.answer.timestamp).getTime()
+        } : null
       }));
 
       // Filter by status

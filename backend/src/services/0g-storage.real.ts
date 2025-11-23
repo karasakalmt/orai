@@ -139,13 +139,16 @@ export class Real0GStorageService {
 
       // Write to temporary file
       await fs.writeFile(tempPath, JSON.stringify(answerData, null, 2));
+      logger.info({ tempPath, fileSize: (await fs.stat(tempPath)).size }, 'Temporary file created');
 
       // Create ZgFile from the temporary file
       const file = await ZgFile.fromFilePath(tempPath);
+      logger.info({ fileSize: file.size() }, 'ZgFile created');
 
       // Generate merkle tree
       const [tree, treeErr] = await file.merkleTree();
       if (treeErr) {
+        logger.error({ treeErr, treeErrMessage: treeErr?.message }, 'Merkle tree generation failed');
         throw new OGServiceError(
           'Failed to generate merkle tree',
           OGErrorCode.STORAGE_ERROR,
@@ -153,15 +156,20 @@ export class Real0GStorageService {
           treeErr
         );
       }
+      logger.info({ rootHash: tree.rootHash() }, 'Merkle tree generated');
+
+      // Check wallet balance before upload
+      const RPC_URL = process.env.OG_RPC_URL || 'https://evmrpc-testnet.0g.ai/';
+      const provider = new ethers.JsonRpcProvider(RPC_URL);
+      const balance = await provider.getBalance(this.signer.address);
 
       logger.info({
         questionId: answer.questionId,
-        root: tree.root(),
-        fileSize: file.size()
+        rootHash: tree.rootHash(),
+        fileSize: file.size(),
+        walletAddress: this.signer.address,
+        walletBalance: ethers.formatEther(balance)
       }, 'Uploading to 0G Storage...');
-
-      // Upload to 0G Storage network (correct parameters: zgFile, RPC_URL, signer)
-      const RPC_URL = process.env.OG_RPC_URL || 'https://evmrpc-testnet.0g.ai/';
       const [txHash, uploadErr] = await this.indexer.upload(
         file,
         RPC_URL,
@@ -169,6 +177,12 @@ export class Real0GStorageService {
       );
 
       if (uploadErr) {
+        logger.error({
+          error: uploadErr,
+          errorMessage: uploadErr?.message,
+          errorStack: uploadErr?.stack,
+          errorDetails: JSON.stringify(uploadErr)
+        }, 'Upload error details');
         throw new OGServiceError(
           'Failed to upload to 0G Storage',
           OGErrorCode.STORAGE_ERROR,
@@ -186,7 +200,7 @@ export class Real0GStorageService {
       await file.close();
       await fs.unlink(tempPath).catch(() => {});
 
-      const storageHash = tree.root();
+      const storageHash = tree.rootHash();
       const storageUrl = `https://storagescan-galileo.0g.ai/hash/${storageHash}`;
 
       logger.info({
@@ -204,7 +218,12 @@ export class Real0GStorageService {
       // Cleanup on error
       await fs.unlink(tempPath).catch(() => {});
 
-      logger.error({ error }, 'Failed to store answer on 0G Storage');
+      logger.error({
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorType: error?.constructor?.name
+      }, 'Failed to store answer on 0G Storage');
 
       if (error instanceof OGServiceError) {
         throw error;
@@ -270,8 +289,8 @@ export class Real0GStorageService {
       await fs.unlink(tempPath).catch(() => {});
 
       const result: OGStorageUploadResult = {
-        hash: tree.root(),
-        url: `https://storagescan-galileo.0g.ai/hash/${tree.root()}`,
+        hash: tree.rootHash(),
+        url: `https://storagescan-galileo.0g.ai/hash/${tree.rootHash()}`,
         size: dataBuffer.length,
         timestamp: Date.now(),
         redundancy: params.redundancy || 3,

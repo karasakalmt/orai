@@ -2,13 +2,12 @@
 
 ## Introduction
 
-Orai is a decentralized oracle platform that leverages artificial intelligence to verify and validate real-world data for blockchain applications. Built on the 0G Network, Orai provides a trustless mechanism for submitting questions, obtaining AI-verified answers, and rewarding participants through a stake-based voting system.
+Orai is a decentralized oracle platform that leverages artificial intelligence to verify and validate real-world data for blockchain applications. Built on the 0G Network, Orai provides a trustless mechanism for submitting questions and obtaining AI-verified answers with cryptographic proof verification.
 
 The platform enables users to:
 - Submit questions with attached fees to the oracle
 - Receive AI-verified answers through decentralized relayers
-- Participate in governance by staking tokens and voting on answers
-- Earn rewards for accurate answer validation
+- Verify answer authenticity through cryptographic proofs
 - Build decentralized applications that require verified off-chain data
 
 ## Tech Stack
@@ -129,8 +128,7 @@ All contracts are deployed on **0G Testnet** (Chain ID: 16602):
 - **Deployment Date**: November 22, 2025
 - **Minimum Oracle Fee**: 0.01 tokens
 - **Reward Distribution**:
-  - Voters: 5%
-  - Treasury: 10%
+  - Treasury: 15%
   - Relayers: 85%
 
 ## Project Structure
@@ -260,11 +258,11 @@ MIT
 
 Orai represents a next-generation oracle solution that combines the power of AI verification with blockchain's trustless infrastructure. By building on the 0G Network and utilizing Hardhat 3's modern development features, Orai delivers a scalable, secure, and decentralized platform for real-world data integration.
 
-The platform's unique stake-based voting mechanism ensures answer accuracy while rewarding participants, creating a self-sustaining ecosystem of validators and users. Whether you're building DeFi applications, prediction markets, or any dApp requiring verified external data, Orai provides the infrastructure you need.
+The platform's cryptographic proof verification ensures answer authenticity and transparency, creating a trustless ecosystem for verified data. Whether you're building DeFi applications, prediction markets, or any dApp requiring verified external data, Orai provides the infrastructure you need.
 
 **Key Advantages**:
 - ✅ AI-powered answer verification through 0G's decentralized network
-- ✅ Economically incentivized accuracy through stake-based voting
+- ✅ Cryptographic proof verification for answer authenticity
 - ✅ Low-cost operations on 0G Network
 - ✅ Modern development stack with TypeScript and Hardhat 3
 - ✅ Production-ready with comprehensive testing and documentation

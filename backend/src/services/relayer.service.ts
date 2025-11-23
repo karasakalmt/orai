@@ -174,7 +174,52 @@ export class RelayerService {
         storageUrl: storageResult.storageUrl
       }, 'Step 4/4: Answer stored in 0G Storage');
 
-      // Step 4: Submit answer back to Oracle contract
+      // Save to local database
+      const { prisma } = await import('../config/database');
+
+      // Upsert question
+      await prisma.question.upsert({
+        where: { questionId },
+        create: {
+          questionId,
+          questionText: question,
+          referenceUrls: [],
+          submitter: asker,
+          status: 'answered',
+          feePaid: '0',
+          timestamp: new Date()
+        },
+        update: {
+          status: 'answered'
+        }
+      });
+
+      // Create answer
+      await prisma.answer.upsert({
+        where: { questionId },
+        create: {
+          questionId,
+          answerText: jobResult.output,
+          evidenceSummary: 'AI-generated answer using 0G Compute decentralized inference',
+          storageHash: storageResult.storageHash,
+          modelHash: jobResult.modelHash,
+          inputHash: jobResult.inputHash,
+          outputHash: jobResult.outputHash,
+          verified: false,
+          timestamp: new Date()
+        },
+        update: {
+          answerText: jobResult.output,
+          storageHash: storageResult.storageHash,
+          modelHash: jobResult.modelHash,
+          inputHash: jobResult.inputHash,
+          outputHash: jobResult.outputHash
+        }
+      });
+
+      logger.info({ questionId }, 'Saved question and answer to database');
+
+      // Step 5: Submit answer back to Oracle contract
       const submitResult = await this.oracleContract.submitAnswer(
         questionId,
         jobResult.output,

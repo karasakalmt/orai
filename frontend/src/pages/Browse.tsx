@@ -17,6 +17,18 @@ interface Question {
   isPriority: boolean;
   votes?: { yes: number; no: number };
   references?: string[];
+  verification?: {
+    verified: boolean;
+    modelHash: string;
+    inputHash: string;
+    outputHash: string;
+    evidenceSummary: string;
+  };
+  storage?: {
+    storageHash: string;
+    storageUrl: string;
+    timestamp: number;
+  };
 }
 
 export function Browse() {
@@ -28,6 +40,7 @@ export function Browse() {
   const [searchQuery, setSearchQuery] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
 
   // Submission modal state
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
@@ -182,57 +195,55 @@ export function Browse() {
       try {
         setLoading(true);
 
-        // Fetch from backend API based on filter
-        let response;
-        if (filter === 'all') {
-          response = await apiClient.getQuestions({});
-        } else if (filter === 'pending') {
-          response = await apiClient.getPendingQuestions();
-        } else if (filter === 'answered') {
-          response = await apiClient.getAnsweredQuestions();
-        }
+        // ALWAYS fetch all questions from API first to get complete dataset
+        const allResponse = await apiClient.getQuestions({});
+
+        // Transform API data to match Question interface
+        // Handle both response formats: {data: [...]} and {questions: [...]}
+        const allQuestionsArray = allResponse?.data || allResponse?.questions || [];
+        const allApiQuestions = allQuestionsArray.map((q: any) => ({
+          id: q.id || q.questionId,
+          question: q.question || q.questionText,
+          answer: typeof q.answer === 'string' ? q.answer : (q.answer?.answerText || ''),
+          status: q.status,
+          asker: q.asker || q.submitter,
+          timestamp: typeof q.timestamp === 'number' ? q.timestamp : new Date(q.timestamp).getTime(),
+          fee: typeof q.fee === 'number' ? q.fee : parseFloat(q.fee || q.feePaid || '0'),
+          isPriority: q.isPriority || false,
+          votes: q.votes || { yes: 0, no: 0 },
+          references: q.references || q.referenceUrls || [],
+          verification: q.verification,
+          storage: q.storage
+        }));
 
         // Get questions from localStorage
         const localQuestions = JSON.parse(localStorage.getItem('orai_questions') || '[]');
 
-        // Transform API data to match Question interface
-        const apiQuestions = (response?.data || []).map((q: any) => ({
-          id: q.questionId,
-          question: q.questionText || q.question,
-          answer: q.answer?.answerText || q.answer || '',
-          status: q.status,
-          asker: q.submitter || q.asker,
-          timestamp: new Date(q.timestamp).getTime(),
-          fee: parseFloat(q.feePaid || q.fee || '0'),
-          isPriority: false,
-          votes: q.votes || { yes: 0, no: 0 },
-          references: q.referenceUrls || []
-        }));
-
-        // Add local questions that aren't in API yet
-        const allQuestions = [...apiQuestions];
-
-        localQuestions.forEach((local: any) => {
-          const exists = allQuestions.find(q => q.id === local.transactionHash);
-          const matchesFilter = filter === 'all' || local.status === filter;
-          if (!exists && matchesFilter) {
-            allQuestions.push({
-              id: local.transactionHash,
-              question: local.question,
-              answer: local.answer || '',
-              status: local.status || 'pending',
-              asker: address || '',
-              timestamp: local.timestamp,
-              fee: local.fee,
-              isPriority: false,
-              votes: { yes: 0, no: 0 },
-              references: []
-            });
-          }
+        // Sync localStorage with API - ONLY keep questions that exist in API
+        // localStorage cannot have more items than API shows
+        const syncedLocalQuestions = localQuestions.filter((local: any) => {
+          return allApiQuestions.some(q =>
+            q.id === local.transactionHash ||
+            q.question === local.question
+          );
         });
 
+        // Always update localStorage to match API
+        localStorage.setItem('orai_questions', JSON.stringify(syncedLocalQuestions));
+
+        // Use API data as the source of truth
+        let displayQuestions = [...allApiQuestions];
+
+        // Apply filter
+        if (filter === 'pending') {
+          displayQuestions = displayQuestions.filter(q => q.status === 'pending');
+        } else if (filter === 'answered') {
+          displayQuestions = displayQuestions.filter(q => q.status === 'answered');
+        }
+        // 'all' shows everything, no filtering needed
+
         // Apply sorting
-        let sorted = [...allQuestions];
+        let sorted = [...displayQuestions];
         if (sortBy === 'fee') {
           sorted.sort((a, b) => b.fee - a.fee);
         } else if (sortBy === 'votes') {
@@ -255,23 +266,10 @@ export function Browse() {
         setQuestions(sorted);
       } catch (error) {
         console.error('Failed to fetch questions:', error);
-        // Fallback to localStorage only
-        const localQuestions = JSON.parse(localStorage.getItem('orai_questions') || '[]');
-        const filtered = filter === 'all'
-          ? localQuestions
-          : localQuestions.filter((q: any) => q.status === filter);
-        setQuestions(filtered.map((q: any) => ({
-          id: q.transactionHash,
-          question: q.question,
-          answer: q.answer || '',
-          status: q.status || 'pending',
-          asker: address || '',
-          timestamp: q.timestamp,
-          fee: q.fee,
-          isPriority: false,
-          votes: { yes: 0, no: 0 },
-          references: []
-        })));
+        // If API fails, clear localStorage and show empty state
+        // We can't trust localStorage if API is unavailable
+        localStorage.setItem('orai_questions', JSON.stringify([]));
+        setQuestions([]);
       } finally {
         setLoading(false);
       }
@@ -400,11 +398,98 @@ export function Browse() {
                     </div>
                   )}
 
+                  {/* Show Details Button */}
+                  {(question.verification || question.storage) && (
+                    <div className="mt-4">
+                      <button
+                        onClick={() => setExpandedQuestionId(expandedQuestionId === question.id ? null : question.id)}
+                        className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium text-sm"
+                      >
+                        {expandedQuestionId === question.id ? 'Hide Details' : 'Show Details'}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Expanded Details */}
+                  {expandedQuestionId === question.id && (question.verification || question.storage) && (
+                    <div className="mt-4 space-y-4">
+                      {/* Verification Info */}
+                      {question.verification && (
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                          <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                            </svg>
+                            Verification
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${question.verification.verified ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
+                                {question.verification.verified ? '✓ Verified' : '✗ Not Verified'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Model Hash:</span>
+                              <p className="font-mono text-xs text-gray-800 break-all">{question.verification.modelHash}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Input Hash:</span>
+                              <p className="font-mono text-xs text-gray-800 break-all">{question.verification.inputHash}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Output Hash:</span>
+                              <p className="font-mono text-xs text-gray-800 break-all">{question.verification.outputHash}</p>
+                            </div>
+                            {question.verification.evidenceSummary && (
+                              <div>
+                                <span className="text-gray-600">Evidence Summary:</span>
+                                <p className="text-gray-800 mt-1">{question.verification.evidenceSummary}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Storage Info */}
+                      {question.storage && (
+                        <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200">
+                          <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z"/>
+                              <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z"/>
+                              <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z"/>
+                            </svg>
+                            0G Storage
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div>
+                              <span className="text-gray-600">Storage Hash:</span>
+                              <p className="font-mono text-xs text-gray-800 break-all">{question.storage.storageHash}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Storage URL:</span>
+                              <a
+                                href={question.storage.storageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline text-xs break-all block"
+                              >
+                                {question.storage.storageUrl}
+                              </a>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Timestamp:</span>
+                              <p className="text-gray-800">{new Date(question.storage.timestamp).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Footer Info */}
                   <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
                     <span>Asked by {question.asker}</span>
-                    <span>•</span>
-                    <span className="font-semibold">{question.fee} 0G</span>
                   </div>
                 </div>
               </div>
