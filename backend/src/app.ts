@@ -143,6 +143,10 @@ export async function buildApp() {
   });
 
   // Register routes
+  // Questions routes
+  const { questionsRoutes } = await import('./routes/questions-fastify.routes');
+  await app.register(questionsRoutes);
+
   // Contract interaction routes
   const { contractRoutes } = await import('./routes/contracts.routes');
   await app.register(contractRoutes);
@@ -154,9 +158,24 @@ export async function buildApp() {
   // Auto-start relayer if configured
   await autoStartRelayer();
 
+  // Start event monitoring
+  const { EventMonitorService } = await import('./services/event-monitor.service');
+  const eventMonitor = new EventMonitorService();
+
   // Graceful relayer shutdown
   app.addHook('onClose', async () => {
     shutdownRelayer();
+    await eventMonitor.stopMonitoring();
+  });
+
+  // Start event monitoring after server is ready
+  app.addHook('onReady', async () => {
+    try {
+      await eventMonitor.startMonitoring();
+      app.log.info('🔍 Blockchain event monitoring active');
+    } catch (error) {
+      app.log.error({ error }, 'Failed to start event monitoring');
+    }
   });
 
   // Test routes for 0G services (development only)

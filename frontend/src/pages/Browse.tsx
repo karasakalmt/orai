@@ -23,7 +23,7 @@ export function Browse() {
   const location = useLocation();
   const publicClient = usePublicClient();
   const { isConnected, address } = useWeb3();
-  const [filter, setFilter] = useState<'all' | 'pending' | 'processing' | 'answered' | 'validated'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'answered'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'fee' | 'votes'>('recent');
   const [searchQuery, setSearchQuery] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -176,27 +176,109 @@ export function Browse() {
     }
   });
 
-  // Fetch questions from API
+  // Fetch questions from API and localStorage
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
         setLoading(true);
-        const params: any = {};
-        if (filter !== 'all') params.status = filter;
-        if (sortBy) params.sortBy = sortBy;
-        if (searchQuery) params.search = searchQuery;
 
-        const response = await apiClient.getQuestions(params);
-        setQuestions(response.questions || []);
+        // Fetch from backend API based on filter
+        let response;
+        if (filter === 'all') {
+          response = await apiClient.getQuestions({});
+        } else if (filter === 'pending') {
+          response = await apiClient.getPendingQuestions();
+        } else if (filter === 'answered') {
+          response = await apiClient.getAnsweredQuestions();
+        }
+
+        // Get questions from localStorage
+        const localQuestions = JSON.parse(localStorage.getItem('orai_questions') || '[]');
+
+        // Transform API data to match Question interface
+        const apiQuestions = (response?.data || []).map((q: any) => ({
+          id: q.questionId,
+          question: q.questionText || q.question,
+          answer: q.answer?.answerText || q.answer || '',
+          status: q.status,
+          asker: q.submitter || q.asker,
+          timestamp: new Date(q.timestamp).getTime(),
+          fee: parseFloat(q.feePaid || q.fee || '0'),
+          isPriority: false,
+          votes: q.votes || { yes: 0, no: 0 },
+          references: q.referenceUrls || []
+        }));
+
+        // Add local questions that aren't in API yet
+        const allQuestions = [...apiQuestions];
+
+        localQuestions.forEach((local: any) => {
+          const exists = allQuestions.find(q => q.id === local.transactionHash);
+          const matchesFilter = filter === 'all' || local.status === filter;
+          if (!exists && matchesFilter) {
+            allQuestions.push({
+              id: local.transactionHash,
+              question: local.question,
+              answer: local.answer || '',
+              status: local.status || 'pending',
+              asker: address || '',
+              timestamp: local.timestamp,
+              fee: local.fee,
+              isPriority: false,
+              votes: { yes: 0, no: 0 },
+              references: []
+            });
+          }
+        });
+
+        // Apply sorting
+        let sorted = [...allQuestions];
+        if (sortBy === 'fee') {
+          sorted.sort((a, b) => b.fee - a.fee);
+        } else if (sortBy === 'votes') {
+          sorted.sort((a, b) => {
+            const aVotes = (a.votes?.yes || 0) + (a.votes?.no || 0);
+            const bVotes = (b.votes?.yes || 0) + (b.votes?.no || 0);
+            return bVotes - aVotes;
+          });
+        } else {
+          sorted.sort((a, b) => b.timestamp - a.timestamp);
+        }
+
+        // Apply search filter
+        if (searchQuery) {
+          sorted = sorted.filter(q =>
+            q.question.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        }
+
+        setQuestions(sorted);
       } catch (error) {
         console.error('Failed to fetch questions:', error);
+        // Fallback to localStorage only
+        const localQuestions = JSON.parse(localStorage.getItem('orai_questions') || '[]');
+        const filtered = filter === 'all'
+          ? localQuestions
+          : localQuestions.filter((q: any) => q.status === filter);
+        setQuestions(filtered.map((q: any) => ({
+          id: q.transactionHash,
+          question: q.question,
+          answer: q.answer || '',
+          status: q.status || 'pending',
+          asker: address || '',
+          timestamp: q.timestamp,
+          fee: q.fee,
+          isPriority: false,
+          votes: { yes: 0, no: 0 },
+          references: []
+        })));
       } finally {
         setLoading(false);
       }
     };
 
     fetchQuestions();
-  }, [filter, sortBy, searchQuery]);
+  }, [filter, sortBy, searchQuery, address]);
 
   const filteredQuestions = questions;
 
@@ -253,7 +335,7 @@ export function Browse() {
 
             {/* Status Filter */}
             <div className="flex gap-2">
-              {(['all', 'pending', 'processing', 'answered', 'validated'] as const).map((status) => (
+              {(['all', 'pending', 'answered'] as const).map((status) => (
                 <button
                   key={status}
                   onClick={() => setFilter(status)}
@@ -276,17 +358,12 @@ export function Browse() {
             >
               <option value="recent">Most Recent</option>
               <option value="fee">Highest Fee</option>
-              <option value="votes">Most Votes</option>
             </select>
           </div>
 
           {/* Stats */}
           <div className="flex gap-4 mt-4 text-sm text-gray-600">
             <span>{filteredQuestions.length} questions</span>
-            <span>•</span>
-            <span>{filteredQuestions.filter(q => q.status === 'validated').length} validated</span>
-            <span>•</span>
-            <span>{filteredQuestions.filter(q => q.status === 'processing').length} processing</span>
           </div>
         </div>
 
@@ -320,41 +397,6 @@ export function Browse() {
                   {question.answer && (
                     <div className="mt-4 p-4 bg-gray-50 rounded-xl">
                       <p className="text-gray-700">{question.answer}</p>
-
-                      {/* Voting if answered */}
-                      {question.votes && (
-                        <div className="flex items-center gap-4 mt-4">
-                          <div className="flex items-center gap-2">
-                            <button className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
-                              ✓ {question.votes.yes}
-                            </button>
-                            <button className="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                              ✗ {question.votes.no}
-                            </button>
-                          </div>
-                          <span className="text-sm text-gray-600">
-                            {Math.round((question.votes.yes / (question.votes.yes + question.votes.no)) * 100)}% accuracy
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* References */}
-                  {question.references && question.references.length > 0 && (
-                    <div className="flex gap-2 mt-3">
-                      <span className="text-sm text-gray-500">References:</span>
-                      {question.references.map((ref, i) => (
-                        <a
-                          key={i}
-                          href={ref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline"
-                        >
-                          {new URL(ref).hostname}
-                        </a>
-                      ))}
                     </div>
                   )}
 
@@ -362,22 +404,10 @@ export function Browse() {
                   <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
                     <span>Asked by {question.asker}</span>
                     <span>•</span>
-                    <span className="font-semibold">{question.fee} ORAI</span>
+                    <span className="font-semibold">{question.fee} 0G</span>
                   </div>
                 </div>
               </div>
-
-              {/* Action Buttons */}
-              {isConnected && question.status === 'answered' && (
-                <div className="flex gap-2 mt-4">
-                  <button className="px-4 py-2 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition-colors font-medium">
-                    Validate Answer
-                  </button>
-                  <button className="px-4 py-2 bg-purple-100 text-purple-700 rounded-xl hover:bg-purple-200 transition-colors font-medium">
-                    Challenge
-                  </button>
-                </div>
-              )}
             </div>
           ))}
         </div>

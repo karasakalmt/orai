@@ -43,13 +43,36 @@ export class ZeroGStorageService {
     inputHash: string;
     outputHash: string;
     timestamp?: number;
+    questionText?: string;
+    evidence?: Array<{ url: string; content: string; relevance: number }>;
+    model?: string;
   }): Promise<{ storageHash: string; storageUrl: string }> {
     try {
       const data = JSON.stringify({
-        ...answer,
+        // Question & Answer
+        questionId: answer.questionId,
+        questionText: answer.questionText || '',
+        answerText: answer.answerText,
+
+        // Evidence & Sources
+        evidenceSummary: answer.evidenceSummary,
+        evidence: answer.evidence || [],
+
+        // Proof of Inference
+        proofOfInference: {
+          model: answer.model || 'unknown',
+          modelHash: answer.modelHash,
+          inputHash: answer.inputHash,
+          outputHash: answer.outputHash,
+          input: answer.questionText || '',
+          output: answer.answerText
+        },
+
+        // Metadata
         timestamp: answer.timestamp || Date.now(),
         version: '1.0.0',
         network: this.config.network,
+        storageType: '0g-mock'
       });
 
       const uploadResult = await this.upload({

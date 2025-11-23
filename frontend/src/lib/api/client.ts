@@ -1,6 +1,21 @@
 const API_BASE_URL = 'http://localhost:3001/api';
 
 export const apiClient = {
+  async getAllQuestions() {
+    const response = await fetch(`${API_BASE_URL}/questions/all`);
+    return response.json();
+  },
+
+  async getPendingQuestions() {
+    const response = await fetch(`${API_BASE_URL}/questions/pending`);
+    return response.json();
+  },
+
+  async getAnsweredQuestions() {
+    const response = await fetch(`${API_BASE_URL}/questions/answered`);
+    return response.json();
+  },
+
   async getQuestions(params = {}) {
     const queryParams = new URLSearchParams(params as any);
     const response = await fetch(`${API_BASE_URL}/questions?${queryParams}`);

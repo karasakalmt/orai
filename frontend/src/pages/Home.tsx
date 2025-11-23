@@ -161,6 +161,86 @@ export function Home() {
         </div>
       </section>
 
+      {/* Technology & Architecture */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+              Built on Cutting-Edge Technology
+            </h2>
+            <p className="text-lg text-gray-600">
+              Powered by 0G Network and decentralized infrastructure
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* 0G Network */}
+            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg mb-4 flex items-center justify-center text-white text-xl">
+                ⛓️
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2">0G Network</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                High-performance blockchain designed for AI and data-intensive applications
+              </p>
+              <ul className="text-xs text-gray-500 space-y-1">
+                <li>• Chain ID: 16602</li>
+                <li>• Native 0G token</li>
+                <li>• Fast finality</li>
+              </ul>
+            </div>
+
+            {/* 0G Storage */}
+            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg mb-4 flex items-center justify-center text-white text-xl">
+                💾
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2">0G Storage</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Decentralized data storage with verifiable proofs and high availability
+              </p>
+              <ul className="text-xs text-gray-500 space-y-1">
+                <li>• AI model storage</li>
+                <li>• Proof generation</li>
+                <li>• Data persistence</li>
+              </ul>
+            </div>
+
+            {/* Smart Contracts */}
+            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg mb-4 flex items-center justify-center text-white text-xl">
+                📝
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2">Smart Contracts</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Secure Solidity contracts managing all oracle operations
+              </p>
+              <ul className="text-xs text-gray-500 space-y-1">
+                <li>• Question storage</li>
+                <li>• Answer verification</li>
+                <li>• Fee management</li>
+              </ul>
+            </div>
+
+            {/* Security */}
+            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all">
+              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-lg mb-4 flex items-center justify-center text-white text-xl">
+                🔒
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2">Security</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Enterprise-grade security with multiple protection layers
+              </p>
+              <ul className="text-xs text-gray-500 space-y-1">
+                <li>• Access control</li>
+                <li>• Reentrancy guards</li>
+                <li>• Pausable system</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-purple-900 to-blue-900 text-white">
         <div className="max-w-4xl mx-auto text-center px-4">

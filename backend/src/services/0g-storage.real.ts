@@ -92,6 +92,9 @@ export class Real0GStorageService {
     inputHash: string;
     outputHash: string;
     timestamp?: number;
+    questionText?: string;
+    evidence?: Array<{ url: string; content: string; relevance: number }>;
+    model?: string;
   }): Promise<{ storageHash: string; storageUrl: string; txHash?: string }> {
     if (!this.initialized) {
       throw new OGServiceError(
@@ -106,12 +109,32 @@ export class Real0GStorageService {
     const tempPath = path.join(tempDir, `answer_${Date.now()}.json`);
 
     try {
-      // Prepare answer data
+      // Prepare comprehensive answer data for permanent storage
       const answerData = {
-        ...answer,
+        // Question & Answer
+        questionId: answer.questionId,
+        questionText: answer.questionText || '',
+        answerText: answer.answerText,
+
+        // Evidence & Sources
+        evidenceSummary: answer.evidenceSummary,
+        evidence: answer.evidence || [],
+
+        // Proof of Inference (for verification)
+        proofOfInference: {
+          model: answer.model || 'unknown',
+          modelHash: answer.modelHash,
+          inputHash: answer.inputHash,
+          outputHash: answer.outputHash,
+          input: answer.questionText || '',
+          output: answer.answerText
+        },
+
+        // Metadata
         timestamp: answer.timestamp || Date.now(),
         version: '1.0.0',
-        network: 'testnet'
+        network: 'testnet',
+        storageType: '0g-decentralized'
       };
 
       // Write to temporary file
@@ -137,12 +160,12 @@ export class Real0GStorageService {
         fileSize: file.size()
       }, 'Uploading to 0G Storage...');
 
-      // Upload to 0G Storage network
-      const [tx, uploadErr] = await this.indexer.upload(
+      // Upload to 0G Storage network (correct parameters: zgFile, RPC_URL, signer)
+      const RPC_URL = process.env.OG_RPC_URL || 'https://evmrpc-testnet.0g.ai/';
+      const [txHash, uploadErr] = await this.indexer.upload(
         file,
-        0, // segIndex
-        [], // tags
-        this.flowContract
+        RPC_URL,
+        this.signer
       );
 
       if (uploadErr) {
@@ -154,8 +177,10 @@ export class Real0GStorageService {
         );
       }
 
-      // Wait for transaction confirmation
-      const receipt = await tx.wait();
+      logger.info({
+        questionId: answer.questionId,
+        txHash
+      }, 'Upload transaction submitted, waiting for confirmation...');
 
       // Close file and cleanup
       await file.close();
@@ -167,14 +192,13 @@ export class Real0GStorageService {
       logger.info({
         questionId: answer.questionId,
         storageHash,
-        txHash: receipt.hash,
-        blockNumber: receipt.blockNumber
+        txHash
       }, 'Answer stored on 0G Storage network');
 
       return {
         storageHash,
         storageUrl,
-        txHash: receipt.hash
+        txHash
       };
     } catch (error) {
       // Cleanup on error
@@ -229,28 +253,17 @@ export class Real0GStorageService {
         throw treeErr;
       }
 
-      // Prepare tags from metadata
-      const tags = params.metadata
-        ? Object.entries(params.metadata).map(([key, value]) => ({
-            key,
-            value: String(value)
-          }))
-        : [];
-
-      // Upload to network
-      const [tx, uploadErr] = await this.indexer.upload(
+      // Upload to network (correct parameters: zgFile, RPC_URL, signer)
+      const RPC_URL = process.env.OG_RPC_URL || 'https://evmrpc-testnet.0g.ai/';
+      const [txHash, uploadErr] = await this.indexer.upload(
         file,
-        0,
-        tags,
-        this.flowContract
+        RPC_URL,
+        this.signer
       );
 
       if (uploadErr) {
         throw uploadErr;
       }
-
-      // Wait for confirmation
-      const receipt = await tx.wait();
 
       // Cleanup
       await file.close();
@@ -268,7 +281,7 @@ export class Real0GStorageService {
       logger.debug({
         hash: result.hash,
         size: result.size,
-        txHash: receipt.hash
+        txHash
       }, 'Data uploaded to 0G Storage');
 
       return result;

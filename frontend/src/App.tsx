@@ -7,7 +7,6 @@ import { useWeb3 } from './hooks/useWeb3';
 import { Home } from './pages/Home';
 import { Ask } from './pages/Ask';
 import { Browse } from './pages/Browse';
-import { Validate } from './pages/Validate';
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { isConnected } = useWeb3();
@@ -57,16 +56,6 @@ function Layout({ children }: { children: React.ReactNode }) {
                 >
                   Browse
                 </NavLink>
-                <NavLink
-                  to="/validate"
-                  className={({ isActive }) =>
-                    `font-medium transition-colors ${
-                      isActive ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'
-                    }`
-                  }
-                >
-                  Validate
-                </NavLink>
               </nav>
             </div>
 
@@ -106,7 +95,6 @@ function App() {
         <Route path="/" element={<Layout><Home /></Layout>} />
         <Route path="/ask" element={<Layout><Ask /></Layout>} />
         <Route path="/browse" element={<Layout><Browse /></Layout>} />
-        <Route path="/validate" element={<Layout><Validate /></Layout>} />
       </Routes>
     </BrowserRouter>
   );

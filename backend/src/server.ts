@@ -8,9 +8,13 @@ import http from 'http';
 import questionsRouter from './routes/questions';
 import validationsRouter from './routes/validations';
 import oracleRouter from './routes/oracle';
+import { EventMonitorService } from './services/event-monitor.service';
 
 // Load environment variables
 dotenv.config();
+
+// Initialize event monitor
+const eventMonitor = new EventMonitorService();
 
 // Create Express app
 const app: Express = express();
@@ -79,8 +83,26 @@ app.use((err: any, req: Request, res: Response, next: any) => {
 
 // Start server
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`✨ Server running on http://localhost:${PORT}`);
   console.log(`📦 API available at http://localhost:${PORT}/api`);
   console.log(`🔌 WebSocket server ready`);
+
+  // Start event monitoring
+  try {
+    await eventMonitor.startMonitoring();
+    console.log('🔍 Blockchain event monitoring active');
+  } catch (error) {
+    console.error('Failed to start event monitoring:', error);
+  }
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  await eventMonitor.stopMonitoring();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });

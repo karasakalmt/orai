@@ -1,6 +1,5 @@
-import { createZGComputeNetworkBroker, ZGServingNetworkBroker } from '@0glabs/0g-serving-broker';
+import { createZGComputeNetworkBroker } from '@0glabs/0g-serving-broker';
 import { ethers } from 'ethers';
-import OpenAI from 'openai';
 import { logger } from '../utils/logger';
 import {
   OGComputeJob,
@@ -17,7 +16,7 @@ import { randomBytes } from 'crypto';
  * Interacts with actual 0G GPU compute network for AI inference
  */
 export class Real0GComputeService {
-  private broker?: ZGServingNetworkBroker;
+  private broker?: Awaited<ReturnType<typeof createZGComputeNetworkBroker>>;
   private signer: ethers.Wallet;
   private provider: ethers.JsonRpcProvider;
   private initialized: boolean = false;
@@ -56,63 +55,26 @@ export class Real0GComputeService {
       // Create the ZG Serving broker
       this.broker = await createZGComputeNetworkBroker(this.signer);
 
-      // Try to get prepaid balance, create account if doesn't exist
+      // Get current ledger balance (do not auto-fund)
       try {
         const ledgerInfo = await this.broker.ledger.getLedger();
         // getLedger returns a Result array, balance is at index 1
         const balance = Array.isArray(ledgerInfo) ? ledgerInfo[1] : ledgerInfo;
         this.prepaidBalance = parseFloat(ethers.formatEther(balance));
-        logger.info({ balance: this.prepaidBalance }, '0G Compute account found');
+        logger.info({ balance: this.prepaidBalance }, '0G Compute ledger balance');
+
+        if (this.prepaidBalance < 0.1) {
+          logger.warn({
+            balance: this.prepaidBalance
+          }, '⚠️  Low ledger balance. Please fund your account manually using: npx tsx fund-ledger.ts');
+        }
       } catch (error) {
-        // Account doesn't exist, create it by adding funds
+        // Account doesn't exist
         if (error instanceof Error && error.message.includes('Account does not exist')) {
-          logger.info('0G Compute account does not exist. Creating account...');
-
-          try {
-            // Add initial funds to create the account (1.5 0G - providers require minimum 1.0 0G)
-            // addLedger expects a number, not bigint
-            await this.broker.ledger.addLedger(1.5);
-
-            // Wait for transaction confirmation
-            await new Promise(resolve => setTimeout(resolve, 5000));
-
-            const ledgerInfo = await this.broker.ledger.getLedger();
-            const balance = Array.isArray(ledgerInfo) ? ledgerInfo[1] : ledgerInfo;
-            this.prepaidBalance = parseFloat(ethers.formatEther(balance));
-            logger.info({
-              newBalance: this.prepaidBalance
-            }, '✅ Account created and funded successfully');
-          } catch (fundError) {
-            logger.error({
-              error: fundError,
-              errorMessage: fundError instanceof Error ? fundError.message : 'Unknown error'
-            }, 'Failed to create account. Need 0G tokens in wallet.');
-            throw fundError;
-          }
+          logger.warn('⚠️  0G Compute account does not exist. Please create it manually using: npx tsx fund-ledger.ts');
+          this.prepaidBalance = 0;
         } else {
           throw error;
-        }
-      }
-
-      // Fund account if balance is low (minimum 1.0 0G required for provider services)
-      if (this.prepaidBalance < 1.0) {
-        logger.warn({
-          balance: this.prepaidBalance
-        }, 'Low prepaid balance. Adding more funds...');
-
-        try {
-          // Use depositFund for existing accounts (not addLedger which is for new accounts)
-          await this.broker.ledger.depositFund(1.5); // Add 1.5 0G
-          await new Promise(resolve => setTimeout(resolve, 5000));
-
-          const ledgerInfo = await this.broker.ledger.getLedger();
-          const balance = Array.isArray(ledgerInfo) ? ledgerInfo[1] : ledgerInfo;
-          this.prepaidBalance = parseFloat(ethers.formatEther(balance));
-          logger.info({
-            newBalance: this.prepaidBalance
-          }, 'Account funded successfully');
-        } catch (error) {
-          logger.error({ error }, 'Failed to add funds. Need more 0G tokens.');
         }
       }
 
@@ -174,46 +136,43 @@ export class Real0GComputeService {
         s.model === modelName || s.serviceType === 'inference'
       ) || services[0]; // Fallback to first available
 
+      // Get service metadata (endpoint and model) as per documentation
+      logger.info({ provider: provider.provider }, 'Getting service metadata...');
+      const { endpoint, model: actualModelName } = await this.broker.inference.getServiceMetadata(provider.provider);
+
       logger.info({
         jobId,
         provider: provider.provider,
-        model: modelName
+        endpoint,
+        requestedModel: modelName,
+        actualModel: actualModelName
       }, 'Submitting inference job to 0G Compute...');
 
       // Check if provider signer is already acknowledged
-      const isAcknowledged = await this.broker.inference.userAcknowledged(provider.provider);
-      logger.info({
-        provider: provider.provider,
-        isAcknowledged
-      }, 'Checked provider acknowledgment status');
+      let isAcknowledged = false;
+      try {
+        isAcknowledged = await this.broker.inference.userAcknowledged(provider.provider);
+        logger.info({
+          provider: provider.provider,
+          isAcknowledged
+        }, 'Provider acknowledgment status');
+      } catch (error: any) {
+        // If account doesn't exist, acknowledgment is required
+        if (error.message && error.message.includes('AccountNotExists')) {
+          logger.warn({
+            provider: provider.provider
+          }, '⚠️  Provider not acknowledged. Please acknowledge manually or the request will fail.');
+        } else {
+          throw error;
+        }
+      }
 
       if (!isAcknowledged) {
-        // Transfer funds to provider if needed (creates provider-specific account)
-        try {
-          const transferAmount = ethers.parseEther('1.0'); // Transfer 1.0 0G to provider account (minimum required)
-          logger.info({
-            provider: provider.provider,
-            amount: '1.0 0G'
-          }, 'Transferring funds to provider account...');
-
-          await this.broker.ledger.transferFund(
-            provider.provider,
-            'inference',
-            transferAmount
-          );
-
-          logger.info('Provider account funded successfully');
-        } catch (error) {
-          // Account might already exist, continue
-          logger.warn({ error }, 'Provider fund transfer warning (may already be funded)');
-        }
-
-        // Acknowledge the provider signer (required before making inference requests)
-        logger.info({ provider: provider.provider }, 'Acknowledging provider signer...');
-        await this.broker.inference.acknowledgeProviderSigner(provider.provider);
-        logger.info('Provider signer acknowledged successfully');
-      } else {
-        logger.info({ provider: provider.provider }, 'Provider already acknowledged, skipping transfer and acknowledgment');
+        throw new OGServiceError(
+          `Provider ${provider.provider} is not acknowledged. Please run acknowledge script first.`,
+          OGErrorCode.COMPUTE_ERROR,
+          400
+        );
       }
 
       // Prepare messages for the model
@@ -237,16 +196,11 @@ export class Real0GComputeService {
       }
 
       // Get authenticated headers for the request
+      // Documentation: pass only messages array, not full request body
       logger.info({ provider: provider.provider }, 'Getting request headers from broker...');
       const headers = await this.broker.inference.getRequestHeaders(
         provider.provider,
-        JSON.stringify({
-          model: modelName,
-          messages,
-          stream: false,
-          temperature: 0.7,
-          max_tokens: 500
-        })
+        JSON.stringify(messages)
       );
       logger.info({ headers: Object.keys(headers) }, 'Request headers obtained');
 
@@ -254,7 +208,7 @@ export class Real0GComputeService {
       const job: OGComputeJob = {
         id: jobId,
         type: 'inference',
-        model: modelName,
+        model: actualModelName,
         input: {
           prompt: params.questionText,
           maxTokens: 500,
@@ -267,40 +221,26 @@ export class Real0GComputeService {
 
       this.jobRegistry.set(jobId, job);
 
-      // Make the inference request
-      const endpoint = provider.url || `https://api.0g.ai`;
-      const requestUrl = `${endpoint}/v1/chat/completions`;
-      const requestBody = {
-        model: modelName,
-        messages,
-        stream: false,
-        temperature: 0.7,
-        max_tokens: 500
-      };
-
+      // Make the inference request using fetch (as per 0G documentation)
       logger.info({
         jobId,
-        endpoint: requestUrl,
-        model: modelName,
+        endpoint,
+        model: actualModelName,
         messageCount: messages.length
-      }, 'Making inference request...');
+      }, 'Making inference request with fetch...');
 
-      const response = await fetch(requestUrl, {
-        method: 'POST',
+      // Make the request using fetch as per documentation
+      const response = await fetch(`${endpoint}/chat/completions`, {
+        method: "POST",
         headers: {
-          ...headers,
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
+          ...headers
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          messages: messages,
+          model: actualModelName,
+        })
       });
-
-      logger.info({
-        jobId,
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      }, 'Received response from provider');
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -309,20 +249,44 @@ export class Real0GComputeService {
           status: response.status,
           statusText: response.statusText,
           errorBody: errorText
-        }, 'Inference request failed');
-        throw new Error(`Inference request failed: ${response.statusText} - ${errorText}`);
+        }, 'Provider request failed');
+        throw new Error(`Provider returned ${response.status}: ${errorText}`);
       }
 
-      const responseText = await response.text();
-      logger.debug({ jobId, responseText }, 'Raw response text');
+      const data: any = await response.json();
+      const chatID = data.id;
 
-      const result = JSON.parse(responseText);
+      logger.info({
+        jobId,
+        chatID,
+        model: data.model,
+        usage: data.usage,
+        finishReason: data.choices[0]?.finish_reason
+      }, 'Received response from provider');
+
+      // Extract the result in the expected format
+      const result = {
+        choices: data.choices.map((choice: any) => ({
+          message: {
+            content: choice.message.content
+          },
+          finish_reason: choice.finish_reason,
+          index: choice.index
+        })),
+        usage: {
+          total_tokens: data.usage?.total_tokens || 0,
+          prompt_tokens: data.usage?.prompt_tokens || 0,
+          completion_tokens: data.usage?.completion_tokens || 0
+        },
+        chatID: chatID
+      };
 
       // Verify response if provider is verifiable (TEE)
-      if (provider.verifiable) {
+      if ((provider as any).verifiable) {
         try {
-          await this.broker.inference.processResponse(provider.provider, response);
-          logger.info({ jobId }, 'Response verified successfully');
+          const responseContent = result.choices?.[0]?.message?.content || '';
+          await this.broker.inference.processResponse(provider.provider, responseContent, chatID);
+          logger.info({ jobId, chatID }, 'Response verified successfully');
         } catch (error) {
           logger.warn({ error, jobId }, 'Response verification failed');
         }
@@ -331,7 +295,7 @@ export class Real0GComputeService {
       // Update job with result
       const computeResult: OGComputeResult = {
         output: result.choices?.[0]?.message?.content || 'No response generated',
-        modelHash: ethers.keccak256(ethers.toUtf8Bytes(modelName)),
+        modelHash: ethers.keccak256(ethers.toUtf8Bytes(actualModelName)),
         inputHash: ethers.keccak256(ethers.toUtf8Bytes(params.questionText)),
         outputHash: ethers.keccak256(ethers.toUtf8Bytes(result.choices?.[0]?.message?.content || '')),
         nodeSignatures: [provider.provider], // Provider address as signature
