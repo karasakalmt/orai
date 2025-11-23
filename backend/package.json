@@ -9,7 +9,9 @@
     "start": "node dist/app.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "db:reset": "tsx reset-db.ts",
+    "db:seed": "tsx seed-mock-questions.ts"
   },
   "keywords": [
     "oracle",
